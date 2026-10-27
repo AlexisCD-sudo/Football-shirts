@@ -7,19 +7,31 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      # Sense package-lock.json encara: es genera aquí i es publica com a artefacte per commitejar-lo.
-      - run: npm install
-      - uses: actions/upload-artifact@v4
+      # Encara no hi ha package-lock.json: es genera aquí i es publica com a artefacte.
+      - name: Instal·la dependències
+        run: mkdir -p ci-logs && npm install 2>&1 | tee ci-logs/install.txt; exit "${PIPESTATUS[0]}"
+      - name: TypeScript
+        run: npm run typecheck 2>&1 | tee ci-logs/typecheck.txt; exit "${PIPESTATUS[0]}"
+      - name: Lint
+        run: npm run lint 2>&1 | tee ci-logs/lint.txt; exit "${PIPESTATUS[0]}"
+      - name: Proves
+        run: npm test 2>&1 | tee ci-logs/test.txt; exit "${PIPESTATUS[0]}"
+      - name: Build
+        run: npm run build 2>&1 | tee ci-logs/build.txt; exit "${PIPESTATUS[0]}"
+      - name: Publica registres i lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: package-lock
-          path: package-lock.json
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+          name: ci-resultats
+          path: |
+            ci-logs/
+            package-lock.json
+          if-no-files-found: warn

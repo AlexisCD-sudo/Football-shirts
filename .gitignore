@@ -14,3 +14,4 @@ data/private/
 exports/
 coverage/
 .DS_Store
+ci-logs/
