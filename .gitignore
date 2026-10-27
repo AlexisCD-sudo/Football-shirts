@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.local
+.vercel/
+supabase/.temp/
+# dades personals i exportacions privades: mai al repositori
+data/private/
+*.numbers
+*.xlsx
+*.xls
+exports/
+coverage/
+.DS_Store
