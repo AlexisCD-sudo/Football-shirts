@@ -25,7 +25,8 @@ type Dialog =
   | { type: 'delete'; id: string };
 
 export function CatalogPage({ repository }: { repository: ShirtRepository }) {
-  const { shirts, teams, loading, error, reload, create, update, remove } = useShirtCollection(repository);
+  const { shirts, teams, loading, error, reload, sync, syncing, syncError, lastSync, create, update, remove } =
+    useShirtCollection(repository);
   const [filters, setFilters] = useState<CatalogFilters>(emptyFilters);
   const [sort, setSort] = useState<SortKey>('team');
   const [view, setView] = usePersistentState<'grid' | 'list'>('fsc.view', 'grid', ['grid', 'list']);
@@ -131,6 +132,25 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
               <button type="button" className="underline" onClick={() => setFilters(emptyFilters)}>
                 Neteja filtres
               </button>
+            )}
+            {repository.persistence === 'cloud' && (
+              <span className="ml-auto flex items-center gap-2">
+                {syncError ? (
+                  <span role="alert" className="text-red-700 dark:text-red-400">
+                    No s&rsquo;ha pogut actualitzar: {syncError}
+                  </span>
+                ) : (
+                  lastSync && (
+                    <span>
+                      Sincronitzat a les{' '}
+                      {lastSync.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )
+                )}
+                <button type="button" className="underline" onClick={() => void sync()} disabled={syncing}>
+                  {syncing ? 'Actualitzant…' : 'Actualitza'}
+                </button>
+              </span>
             )}
           </p>
           {visible.length === 0 ? (
