@@ -38,6 +38,9 @@ export interface ShirtRow {
   curiosities: string | null;
   created_at: string;
   updated_at: string;
+  import_batch_id?: string | null;
+  source_row?: number | null;
+  original_data?: Record<string, string> | null;
   teams: TeamRow | null;
   shirt_images?: ImageRow[] | null;
 }
@@ -79,6 +82,9 @@ export function rowToShirt(r: ShirtRow): Shirt {
     notes: r.notes,
     curiosities: r.curiosities,
     photoUrl: primary?.image_url ?? null,
+    importBatchId: r.import_batch_id ?? null,
+    sourceRow: r.source_row ?? null,
+    originalData: r.original_data ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };

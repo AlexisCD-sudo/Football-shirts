@@ -2,8 +2,8 @@
 
 Aplicació web per gestionar una col·lecció personal de samarretes de futbol. Interfície en català.
 
-> **Estat: fase 2 de 8.** Catàleg funcional amb dades **provisionals en memòria** (es perden en recarregar).
-> El desat al núvol (Supabase), la importació, la cerca d'imatges i la resta de funcions arriben a les fases següents.
+> **Estat: fase 4 de 8.** Catàleg, Supabase amb autenticació, importació i exportació.
+> La cerca d'imatges, la llista de desitjos, les estadístiques i la PWA arriben a les fases següents.
 > El pla complet és a [`docs/FASE-1.md`](docs/FASE-1.md).
 
 ## Què funciona ara
@@ -13,10 +13,12 @@ Aplicació web per gestionar una col·lecció personal de samarretes de futbol. 
 - Ordenació per equip, temporada o darrer afegit.
 - Crear, editar i eliminar samarretes (amb validació i confirmació).
 - Mode clar i fosc, adaptat a mòbil, tauleta i ordinador.
+- Importació des de CSV o Excel (amb vista prèvia, duplicats i informe) i exportació a Excel, CSV i JSON: [`docs/IMPORT_EXPORT.md`](docs/IMPORT_EXPORT.md).
+- Desat al núvol amb Supabase i inici de sessió: [`docs/SUPABASE.md`](docs/SUPABASE.md).
 
 ## Què encara NO funciona
 
-Desar al núvol i sincronitzar entre dispositius, autenticació, importació de l'Excel/Numbers, fotografies, llista de desitjos, estadístiques, PWA i còpies de seguretat.
+Cerca i selecció de fotografies, llista de desitjos, estadístiques, PWA i còpies de seguretat.
 
 ## Requisits i execució
 

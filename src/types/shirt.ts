@@ -56,6 +56,10 @@ export interface Shirt {
   curiosities: string | null;
   /** URL de la fotografia confirmada (fase 5). Fins llavors, sempre `null`. */
   photoUrl: string | null;
+  /** Traçabilitat de la importació: la fila original completa es conserva tal qual. */
+  importBatchId: string | null;
+  sourceRow: number | null;
+  originalData: Record<string, string> | null;
   createdAt: string;
   updatedAt: string;
 }

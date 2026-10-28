@@ -3,6 +3,8 @@ import { FilterBar } from '../components/FilterBar';
 import { ShirtCard } from '../components/ShirtCard';
 import { ShirtDetailDialog } from '../components/ShirtDetailDialog';
 import { ShirtFormDialog } from '../components/ShirtFormDialog';
+import { ExportDialog } from '../components/ExportDialog';
+import { ImportDialog } from '../components/ImportDialog';
 import { ConfirmDialog, Spinner, buttonCls, inputCls, primaryCls } from '../components/ui';
 import { useShirtCollection } from '../hooks/useShirtCollection';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -20,6 +22,8 @@ import type { Shirt, ShirtInput } from '../types/shirt';
 type Dialog =
   | { type: 'none' }
   | { type: 'create' }
+  | { type: 'import' }
+  | { type: 'export' }
   | { type: 'detail'; id: string }
   | { type: 'edit'; id: string }
   | { type: 'delete'; id: string };
@@ -37,7 +41,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
   const facets = useMemo(() => facetOptions(shirts), [shirts]);
   const visible = useMemo(() => applyCatalog(shirts, filters, sort), [shirts, filters, sort]);
   const selected: Shirt | undefined =
-    dialog.type !== 'none' && dialog.type !== 'create' ? shirts.find((s) => s.id === dialog.id) : undefined;
+    dialog.type !== 'none' && dialog.type !== 'create' && dialog.type !== 'import' && dialog.type !== 'export' ? shirts.find((s) => s.id === dialog.id) : undefined;
   const filtered = activeFilterCount(filters) > 0;
 
   const close = () => {
@@ -94,6 +98,12 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
               </button>
             ))}
           </div>
+          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'import' })}>
+            Importa
+          </button>
+          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'export' })}>
+            Exporta
+          </button>
           <button type="button" className={primaryCls} onClick={() => setDialog({ type: 'create' })}>
             Afegeix samarreta
           </button>
@@ -171,6 +181,10 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
         </>
       )}
 
+      {dialog.type === 'import' && (
+        <ImportDialog repository={repository} shirts={shirts} teams={teams} onImported={sync} onClose={close} />
+      )}
+      {dialog.type === 'export' && <ExportDialog shirts={shirts} onClose={close} />}
       {dialog.type === 'create' && (
         <ShirtFormDialog teams={teams} brands={facets.brands} onSubmit={save} onClose={close} />
       )}
