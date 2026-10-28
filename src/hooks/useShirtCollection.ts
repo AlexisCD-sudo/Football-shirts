@@ -11,11 +11,15 @@ export function useShirtCollection(repo: ShirtRepository) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [s, t] = await Promise.all([repo.listShirts(), repo.listTeams()]);
     setShirts(s);
     setTeams(t);
+    setLastSync(new Date());
   }, [repo]);
 
   const load = useCallback(async () => {
@@ -33,6 +37,29 @@ export function useShirtCollection(repo: ShirtRepository) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /** Actualització silenciosa (no amaga la llista): un error només mostra un avís. */
+  const sync = useCallback(async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      await refresh();
+    } catch (e) {
+      setSyncError(messageOf(e));
+    } finally {
+      setSyncing(false);
+    }
+  }, [refresh]);
+
+  // Al tornar a la pestanya (p. ex. després d'editar des del mòbil) es refresquen les dades.
+  useEffect(() => {
+    if (repo.persistence !== 'cloud') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void sync();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [repo, sync]);
 
   // Les mutacions llancen l'error perquè el formulari el pugui mostrar.
   const create = useCallback(
@@ -59,5 +86,5 @@ export function useShirtCollection(repo: ShirtRepository) {
     [repo, refresh],
   );
 
-  return { shirts, teams, loading, error, reload: load, create, update, remove };
+  return { shirts, teams, loading, error, reload: load, sync, syncing, syncError, lastSync, create, update, remove };
 }

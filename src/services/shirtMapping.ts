@@ -1,0 +1,130 @@
+import type { Authenticity, KitType, Shirt, ShirtCondition, ShirtInput, ShirtVersion, Team, TeamKind } from '../types/shirt';
+
+export interface TeamRow {
+  id: string;
+  name: string;
+  kind: TeamKind;
+  country: string | null;
+}
+
+export interface ImageRow {
+  image_url: string | null;
+  is_primary: boolean;
+  status: string;
+}
+
+export interface ShirtRow {
+  id: string;
+  season: string | null;
+  competition: string | null;
+  brand: string | null;
+  model: string | null;
+  kit_type: KitType | null;
+  version: ShirtVersion;
+  player_name: string | null;
+  squad_number: number | null;
+  size: string | null;
+  manufacture_year: number | null;
+  condition: ShirtCondition | null;
+  authenticity: Authenticity;
+  provenance: string | null;
+  purchase_date: string | null;
+  price: number | string | null;
+  shipping_cost: number | string | null;
+  seller: string | null;
+  estimated_value: number | string | null;
+  location: string | null;
+  notes: string | null;
+  curiosities: string | null;
+  created_at: string;
+  updated_at: string;
+  teams: TeamRow | null;
+  shirt_images?: ImageRow[] | null;
+}
+
+/** Columnes que es demanen sempre: la samarreta, el seu equip i les imatges confirmades. */
+export const SHIRT_SELECT = '*, teams(id,name,kind,country), shirt_images(image_url,is_primary,status)';
+
+const num = (v: number | string | null): number | null => (v === null || v === undefined ? null : Number(v));
+
+export function rowToTeam(r: TeamRow): Team {
+  return { id: r.id, name: r.name, kind: r.kind, country: r.country };
+}
+
+export function rowToShirt(r: ShirtRow): Shirt {
+  if (!r.teams) throw new Error('La samarreta no té equip associat');
+  const primary = (r.shirt_images ?? []).find((i) => i.is_primary && i.status === 'confirmed');
+  return {
+    id: r.id,
+    team: rowToTeam(r.teams),
+    season: r.season,
+    competition: r.competition,
+    brand: r.brand,
+    model: r.model,
+    kitType: r.kit_type,
+    version: r.version,
+    playerName: r.player_name,
+    squadNumber: r.squad_number,
+    size: r.size,
+    manufactureYear: r.manufacture_year,
+    condition: r.condition,
+    authenticity: r.authenticity,
+    provenance: r.provenance,
+    purchaseDate: r.purchase_date,
+    price: num(r.price),
+    shippingCost: num(r.shipping_cost),
+    seller: r.seller,
+    estimatedValue: num(r.estimated_value),
+    location: r.location,
+    notes: r.notes,
+    curiosities: r.curiosities,
+    photoUrl: primary?.image_url ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/** Columnes editables. `owner_id` NO s'envia mai: el posa la base de dades (auth.uid()). */
+export function inputToRow(input: ShirtInput, teamId: string) {
+  return {
+    team_id: teamId,
+    season: input.season,
+    competition: input.competition,
+    brand: input.brand,
+    model: input.model,
+    kit_type: input.kitType,
+    version: input.version,
+    player_name: input.playerName,
+    squad_number: input.squadNumber,
+    size: input.size,
+    manufacture_year: input.manufactureYear,
+    condition: input.condition,
+    authenticity: input.authenticity,
+    provenance: input.provenance,
+    purchase_date: input.purchaseDate,
+    price: input.price,
+    shipping_cost: input.shippingCost,
+    seller: input.seller,
+    estimated_value: input.estimatedValue,
+    location: input.location,
+    notes: input.notes,
+    curiosities: input.curiosities,
+  };
+}
+
+/** Converteix errors de Supabase/xarxa en missatges en català. */
+export function friendlyError(e: unknown): Error {
+  const message =
+    e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : String(e);
+  const code = e && typeof e === 'object' && 'code' in e ? String((e as { code: unknown }).code) : '';
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(message)) {
+    return new Error('No hi ha connexió amb el servidor. Revisa Internet i torna-ho a provar.');
+  }
+  if (code === '42501' || /row-level security|permission denied/i.test(message)) {
+    return new Error('No tens permís per fer aquesta operació. Torna a iniciar la sessió.');
+  }
+  if (code === '23505') return new Error('Ja existeix un registre amb aquestes dades.');
+  if (code === '23503') return new Error('No es pot eliminar: hi ha dades que en depenen.');
+  if (/jwt|expired/i.test(message)) return new Error('La sessió ha caducat. Torna a iniciar-la.');
+  return new Error(message || 'S’ha produït un error inesperat');
+}
