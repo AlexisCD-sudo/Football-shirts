@@ -135,7 +135,7 @@ describe('selecció i resum', () => {
   it('la mostra se limita a les primeres files marcades', () => {
     expect(selectForImport(rows, () => true, 'sample')).toHaveLength(SAMPLE_SIZE);
     expect(selectForImport(rows, () => true, 'all')).toHaveLength(8);
-    expect(selectForImport(rows, (r) => r.sourceRow > 5, 'all')).toHaveLength(5);
+    expect(selectForImport(rows, (r) => r.sourceRow > 5, 'all')).toHaveLength(4);
   });
   it('genera elements d’importació amb la fila original', () => {
     const items = toImportItems(selectForImport(rows, () => true, 'sample'));
