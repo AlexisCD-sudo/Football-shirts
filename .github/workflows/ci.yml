@@ -5,7 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   check:
@@ -18,8 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - name: Instal·la dependències
-        run: mkdir -p ci-logs && npm install 2>&1 | tee ci-logs/install.txt; exit "${PIPESTATUS[0]}"
+        run: mkdir -p ci-logs && npm ci 2>&1 | tee ci-logs/install.txt; exit "${PIPESTATUS[0]}"
       - name: TypeScript
         run: npm run typecheck 2>&1 | tee ci-logs/typecheck.txt; exit "${PIPESTATUS[0]}"
       - name: Lint
@@ -28,16 +29,6 @@ jobs:
         run: npm test -- --reporter=default --reporter=github-actions 2>&1 | tee ci-logs/test.txt; exit "${PIPESTATUS[0]}"
       - name: Build
         run: npm run build 2>&1 | tee ci-logs/build.txt; exit "${PIPESTATUS[0]}"
-      - name: Desa package-lock.json a la branca si ha canviat
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/fase-')
-        run: |
-          if [ -n "$(git status --porcelain package-lock.json)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "Actualitza package-lock.json (generat per la CI)"
-            git push
-          fi
       - name: Publica registres
         if: always()
         uses: actions/upload-artifact@v4
