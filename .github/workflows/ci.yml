@@ -4,6 +4,9 @@ on:
     branches: [main, 'fase-*']
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -26,6 +29,16 @@ jobs:
         run: npm test -- --reporter=default --reporter=github-actions 2>&1 | tee ci-logs/test.txt; exit "${PIPESTATUS[0]}"
       - name: Build
         run: npm run build 2>&1 | tee ci-logs/build.txt; exit "${PIPESTATUS[0]}"
+      - name: Desa package-lock.json a la branca si encara no hi és
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/fase-')
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "Afegeix package-lock.json generat per la CI"
+            git push
+          fi
       - name: Publica registres i lockfile
         if: always()
         uses: actions/upload-artifact@v4
