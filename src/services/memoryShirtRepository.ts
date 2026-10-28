@@ -1,6 +1,7 @@
 import { normalize } from '../lib/catalog';
+import type { ImportItem } from '../lib/importer';
 import type { Shirt, ShirtInput, Team } from '../types/shirt';
-import type { ShirtRepository } from './shirtRepository';
+import type { ImportMeta, ImportReport, ShirtRepository } from './shirtRepository';
 
 type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
 
@@ -66,6 +67,9 @@ export class MemoryShirtRepository implements ShirtRepository {
       id: crypto.randomUUID(),
       teamId: team.id,
       photoUrl: null,
+      importBatchId: null,
+      sourceRow: null,
+      originalData: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -85,6 +89,47 @@ export class MemoryShirtRepository implements ShirtRepository {
     };
     this.shirts.set(id, stored);
     return this.compose(stored);
+  }
+
+  /** Troba o crea l'equip SENSE modificar-ne el tipus ni el país si ja existeix. */
+  private teamForImport(input: ShirtInput): Team {
+    const key = normalize(input.teamName);
+    const existing = [...this.teams.values()].find((t) => normalize(t.name) === key);
+    if (existing) return existing;
+    return this.resolveTeam(input);
+  }
+
+  async importShirts(
+    items: ImportItem[],
+    _meta: ImportMeta,
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<ImportReport> {
+    const batchId = crypto.randomUUID();
+    const failed: ImportReport['failed'] = [];
+    let imported = 0;
+    for (const [i, item] of items.entries()) {
+      try {
+        const team = this.teamForImport(item.input);
+        const now = new Date().toISOString();
+        const stored: StoredShirt = {
+          ...this.fields(item.input),
+          id: crypto.randomUUID(),
+          teamId: team.id,
+          photoUrl: null,
+          importBatchId: batchId,
+          sourceRow: item.sourceRow,
+          originalData: { ...item.original },
+          createdAt: now,
+          updatedAt: now,
+        };
+        this.shirts.set(stored.id, stored);
+        imported += 1;
+      } catch (e) {
+        failed.push({ sourceRow: item.sourceRow, message: e instanceof Error ? e.message : 'Error desconegut' });
+      }
+      onProgress?.(i + 1, items.length);
+    }
+    return { batchId, imported, failed };
   }
 
   async deleteShirt(id: string): Promise<void> {

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalize } from '../lib/catalog';
+import type { ImportItem } from '../lib/importer';
 import type { Shirt, ShirtInput, Team } from '../types/shirt';
-import type { ShirtRepository } from './shirtRepository';
+import type { ImportMeta, ImportReport, ShirtRepository } from './shirtRepository';
 import {
   SHIRT_SELECT,
   friendlyError,
@@ -82,6 +83,71 @@ export class SupabaseShirtRepository implements ShirtRepository {
     // Amb RLS, una fila d'un altre usuari o ja esborrada simplement no retorna res.
     if (rows.length === 0) throw new Error('La samarreta ja no existeix');
     return rowToShirt(rows[0]);
+  }
+
+  async importShirts(
+    items: ImportItem[],
+    meta: ImportMeta,
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<ImportReport> {
+    const failed: ImportReport['failed'] = [];
+    if (items.length === 0) return { batchId: '', imported: 0, failed };
+
+    const batch = await this.wrap<{ id: string }>(() =>
+      this.client
+        .from('import_batches')
+        .insert({ filename: meta.filename, column_mapping: meta.columnMapping, summary: meta.summary })
+        .select('id')
+        .single(),
+    );
+
+    // Equips: només es creen els que falten; els existents no es toquen.
+    const teamIds = new Map((await this.listTeams()).map((t) => [normalize(t.name), t.id]));
+    const missing = new Map<string, ImportItem['input']>();
+    for (const { input } of items) {
+      const key = normalize(input.teamName);
+      if (!teamIds.has(key) && !missing.has(key)) missing.set(key, input);
+    }
+    if (missing.size > 0) {
+      const created = await this.wrap<{ id: string; name: string }[]>(() =>
+        this.client
+          .from('teams')
+          .insert([...missing.values()].map((i) => ({ name: i.teamName.trim(), kind: i.teamKind, country: i.country })))
+          .select('id,name'),
+      );
+      for (const t of created) teamIds.set(normalize(t.name), t.id);
+    }
+
+    const toRow = (item: ImportItem) => ({
+      ...inputToRow(item.input, teamIds.get(normalize(item.input.teamName)) as string),
+      import_batch_id: batch.id,
+      source_row: item.sourceRow,
+      original_data: item.original,
+    });
+
+    let imported = 0;
+    let done = 0;
+    const CHUNK = 25;
+    for (let i = 0; i < items.length; i += CHUNK) {
+      const chunk = items.slice(i, i + CHUNK);
+      try {
+        await this.wrap(() => this.client.from('shirts').insert(chunk.map(toRow)).select('id'));
+        imported += chunk.length;
+      } catch {
+        // Si falla el bloc, es prova fila per fila per saber exactament quines fallen.
+        for (const item of chunk) {
+          try {
+            await this.wrap(() => this.client.from('shirts').insert(toRow(item)).select('id'));
+            imported += 1;
+          } catch (e) {
+            failed.push({ sourceRow: item.sourceRow, message: e instanceof Error ? e.message : 'Error desconegut' });
+          }
+        }
+      }
+      done += chunk.length;
+      onProgress?.(done, items.length);
+    }
+    return { batchId: batch.id, imported, failed };
   }
 
   async deleteShirt(id: string): Promise<void> {

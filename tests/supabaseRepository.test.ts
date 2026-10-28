@@ -104,4 +104,63 @@ describe('SupabaseShirtRepository', () => {
     const { client } = fakeClient(() => ({ data: null, error: { code: '42501', message: 'row-level security' } }));
     await expect(new SupabaseShirtRepository(client).listShirts()).rejects.toThrow(/permís/);
   });
+
+  describe('importShirts', () => {
+    const meta = { filename: 'x.csv', columnMapping: { Equip: 'teamName' }, summary: { total: 2 } };
+    const items = [
+      { input: makeInput({ teamName: 'Barça', season: '2010-11' }), sourceRow: 2, original: { Equip: 'Barça' } },
+      { input: makeInput({ teamName: 'Roma', teamKind: 'club', country: 'Itàlia' }), sourceRow: 3, original: { Equip: 'Roma' } },
+      { input: makeInput({ teamName: 'roma' }), sourceRow: 4, original: { Equip: 'roma' } },
+    ];
+
+    it('crea el lot, només els equips que falten i insereix amb la fila original', async () => {
+      const { client, calls } = fakeClient((c) => {
+        if (c.table === 'import_batches') return { data: { id: 'b1' }, error: null };
+        if (c.table === 'teams' && c.action === 'select')
+          return { data: [{ id: 't1', name: 'Barça', kind: 'club', country: null }], error: null };
+        if (c.table === 'teams' && c.action === 'insert') return { data: [{ id: 't2', name: 'Roma' }], error: null };
+        if (c.table === 'shirts' && c.action === 'insert') return { data: [], error: null };
+        throw new Error('crida inesperada');
+      });
+      const progress: number[] = [];
+      const report = await new SupabaseShirtRepository(client).importShirts(items, meta, (d) => progress.push(d));
+      expect(report).toEqual({ batchId: 'b1', imported: 3, failed: [] });
+      expect(progress).toEqual([3]);
+      const teamInsert = calls.find((c) => c.table === 'teams' && c.action === 'insert');
+      expect(teamInsert?.payload).toHaveLength(1); // «Roma» i «roma» són el mateix equip nou
+      expect(calls.some((c) => c.table === 'teams' && c.action === 'update')).toBe(false); // no toca els existents
+      const shirtInsert = calls.find((c) => c.table === 'shirts' && c.action === 'insert');
+      const rows = shirtInsert?.payload as unknown as Record<string, unknown>[];
+      expect(rows).toHaveLength(3);
+      expect(rows[0]).toMatchObject({ team_id: 't1', import_batch_id: 'b1', source_row: 2, original_data: { Equip: 'Barça' } });
+      expect(rows[1]).toMatchObject({ team_id: 't2' });
+      for (const r of rows) expect(r).not.toHaveProperty('owner_id');
+    });
+
+    it('si falla un bloc, ho reintenta fila per fila i informa de les que fallen', async () => {
+      let single = 0;
+      const { client } = fakeClient((c) => {
+        if (c.table === 'import_batches') return { data: { id: 'b1' }, error: null };
+        if (c.table === 'teams' && c.action === 'select') return { data: [{ id: 't1', name: 'Barça', kind: 'club', country: null }, { id: 't2', name: 'Roma', kind: 'club', country: null }], error: null };
+        if (c.table === 'shirts' && c.action === 'insert') {
+          if (Array.isArray(c.payload)) return { data: null, error: { message: 'bloc rebutjat' } };
+          single += 1;
+          return single === 2 ? { data: null, error: { code: '23505', message: 'duplicat' } } : { data: [], error: null };
+        }
+        throw new Error('crida inesperada');
+      });
+      const report = await new SupabaseShirtRepository(client).importShirts(items, meta);
+      expect(report.imported).toBe(2);
+      expect(report.failed).toHaveLength(1);
+      expect(report.failed[0].sourceRow).toBe(3);
+    });
+
+    it('no fa res si no hi ha files', async () => {
+      const { client, calls } = fakeClient(() => {
+        throw new Error('no s\u2019hauria de cridar');
+      });
+      expect(await new SupabaseShirtRepository(client).importShirts([], meta)).toEqual({ batchId: '', imported: 0, failed: [] });
+      expect(calls).toHaveLength(0);
+    });
+  });
 });
