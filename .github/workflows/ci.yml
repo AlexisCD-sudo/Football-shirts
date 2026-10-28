@@ -23,7 +23,7 @@ jobs:
       - name: Lint
         run: npm run lint 2>&1 | tee ci-logs/lint.txt; exit "${PIPESTATUS[0]}"
       - name: Proves
-        run: npm test 2>&1 | tee ci-logs/test.txt; exit "${PIPESTATUS[0]}"
+        run: npm test -- --reporter=default --reporter=github-actions 2>&1 | tee ci-logs/test.txt; exit "${PIPESTATUS[0]}"
       - name: Build
         run: npm run build 2>&1 | tee ci-logs/build.txt; exit "${PIPESTATUS[0]}"
       - name: Publica registres i lockfile
