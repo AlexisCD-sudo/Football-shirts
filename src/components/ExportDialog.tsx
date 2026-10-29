@@ -12,6 +12,15 @@ import type { ShirtRepository } from '../services/shirtRepository';
 import type { Shirt } from '../types/shirt';
 import { Modal, buttonCls } from './ui';
 
+function readText(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 export function ExportDialog({
   shirts,
   repository,
@@ -49,7 +58,7 @@ export function ExportDialog({
   async function verify(file: File) {
     setCheck(null);
     try {
-      setCheck(inspectBackup(await file.text()));
+      setCheck(inspectBackup(await readText(file)));
     } catch {
       setCheck({ ok: false, error: 'No s’ha pogut llegir el fitxer.' });
     }

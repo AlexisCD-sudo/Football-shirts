@@ -73,7 +73,11 @@ describe('diàleg d’exportació', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Exporta la col·lecció' });
     await user.click(within(dialog).getByRole('button', { name: 'Descarrega la còpia (.json)' }));
     await vi.waitFor(() => expect(created).toHaveLength(1));
-    const text = await created[0].text();
+    const text = await new Promise<string>((res) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result));
+      r.readAsText(created[0]);
+    });
     expect(inspectBackup(text).ok).toBe(true);
     await user.upload(within(dialog).getByLabelText('Verifica una còpia'), new File([text], 'c.json', { type: 'application/json' }));
     expect(await within(dialog).findByRole('status')).toHaveTextContent(/Còpia vàlida.*1 samarretes/);

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
-const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url));
+const read = (p: string) => readFileSync(resolve(process.cwd(), p));
 
 function pngSize(buf: Buffer): [number, number] {
   expect(buf.subarray(1, 4).toString()).toBe('PNG');
