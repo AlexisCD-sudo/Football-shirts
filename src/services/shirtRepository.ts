@@ -1,5 +1,16 @@
 import type { ImportItem } from '../lib/importer';
-import type { ImageJob, ImageJobItem, ImageSource, Shirt, ShirtImage, ShirtInput, Team } from '../types/shirt';
+import type {
+  Budget,
+  ImageJob,
+  ImageJobItem,
+  ImageSource,
+  Shirt,
+  ShirtImage,
+  ShirtInput,
+  Team,
+  WishlistInput,
+  WishlistItem,
+} from '../types/shirt';
 
 /**
  * Contracte d'accés a les dades. A la fase 3 s'afegirà una implementació amb
@@ -74,4 +85,16 @@ export interface ShirtRepository {
   getLatestImageJob(): Promise<{ job: ImageJob; items: ImageJobItem[] } | null>;
   updateImageJob(id: string, patch: ImageJobPatch): Promise<void>;
   updateImageJobItem(id: string, patch: ImageJobItemPatch): Promise<void>;
+
+  // ───────── Llista de desitjos i pressupost ─────────
+  listWishlist(): Promise<WishlistItem[]>;
+  createWishlistItem(input: WishlistInput): Promise<WishlistItem>;
+  updateWishlistItem(id: string, input: WishlistInput): Promise<WishlistItem>;
+  deleteWishlistItem(id: string): Promise<void>;
+  /** Enllaça un desig amb la samarreta adquirida i el marca com a «adquirit». */
+  markWishlistAcquired(id: string, shirtId: string): Promise<WishlistItem>;
+  listBudgets(): Promise<Budget[]>;
+  /** Crea o substitueix el pressupost d'un any. */
+  setBudget(year: number, amount: number): Promise<void>;
+  deleteBudget(year: number): Promise<void>;
 }

@@ -5,7 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useTheme } from './hooks/useTheme';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
-import { CatalogPage } from './pages/CatalogPage';
+import { Workspace } from './pages/Workspace';
 import { LoginPage } from './pages/LoginPage';
 import { MemoryShirtRepository } from './services/memoryShirtRepository';
 import type { ShirtRepository } from './services/shirtRepository';
@@ -48,7 +48,7 @@ function MemoryApp({ repository }: { repository: ShirtRepository }) {
           Mode de prova sense Supabase configurat: les dades només es conserven mentre no recarreguis la pàgina.
         </p>
       )}
-      <CatalogPage repository={repository} />
+      <Workspace repository={repository} />
     </Shell>
   );
 }
@@ -84,7 +84,7 @@ function CloudApp({ client }: { client: SupabaseClient }) {
         </>
       }
     >
-      <CatalogPage key={userId} repository={repository} />
+      <Workspace key={userId} repository={repository} />
     </Shell>
   );
 }

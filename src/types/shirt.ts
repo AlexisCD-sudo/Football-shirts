@@ -137,3 +137,45 @@ export interface ImageJobItem {
   lastError: string | null;
   candidatesFound: number;
 }
+
+// ───────── Llista de desitjos i pressupost (fase 6) ─────────
+export type WishlistStatus = 'wanted' | 'watching' | 'acquired' | 'dropped';
+export const WISHLIST_STATUSES: WishlistStatus[] = ['wanted', 'watching', 'acquired', 'dropped'];
+
+export interface WishlistItem {
+  id: string;
+  team: Team;
+  season: string | null;
+  kitType: KitType | null;
+  playerName: string | null;
+  /** 1 (màxima) a 5 (mínima). */
+  priority: number;
+  maxPrice: number | null;
+  purchaseUrl: string | null;
+  referenceImageUrl: string | null;
+  notes: string | null;
+  status: WishlistStatus;
+  acquiredShirtId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WishlistInput {
+  teamName: string;
+  teamKind: TeamKind;
+  country: string | null;
+  season: string | null;
+  kitType: KitType | null;
+  playerName: string | null;
+  priority: number;
+  maxPrice: number | null;
+  purchaseUrl: string | null;
+  referenceImageUrl: string | null;
+  notes: string | null;
+  status: WishlistStatus;
+}
+
+export interface Budget {
+  year: number;
+  amount: number;
+}
