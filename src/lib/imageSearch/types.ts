@@ -24,6 +24,7 @@ export type FetchLike = (url: string, init?: { signal?: AbortSignal }) => Promis
   ok: boolean;
   status: number;
   json: () => Promise<unknown>;
+  text?: () => Promise<string>;
 }>;
 
 export interface SourceError {
