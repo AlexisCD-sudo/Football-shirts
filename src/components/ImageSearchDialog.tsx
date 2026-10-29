@@ -194,7 +194,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
         )}
       </section>
 
-      <section aria-label="Puja una foto" className="mt-6 border-t border-line pt-4">
+      <section aria-label="Fotos pròpies" className="mt-6 border-t border-line pt-4">
         <h3 className="font-display text-lg font-bold">Puja una foto pròpia</h3>
         <label className={`${buttonCls} mt-2 cursor-pointer`}>
           {uploading ? 'Pujant…' : 'Puja una foto'}
