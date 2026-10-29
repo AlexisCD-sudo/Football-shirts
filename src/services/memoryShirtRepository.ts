@@ -1,6 +1,16 @@
 import { normalize } from '../lib/catalog';
 import type { ImportItem } from '../lib/importer';
-import type { ImageJob, ImageJobItem, Shirt, ShirtImage, ShirtInput, Team } from '../types/shirt';
+import type {
+  Budget,
+  ImageJob,
+  ImageJobItem,
+  Shirt,
+  ShirtImage,
+  ShirtInput,
+  Team,
+  WishlistInput,
+  WishlistItem,
+} from '../types/shirt';
 import type {
   ImageJobItemPatch,
   ImageJobPatch,
@@ -16,6 +26,8 @@ type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
  * Implementació provisional en memòria (fase 2). Comença BUIDA: no hi ha dades
  * de demostració a la col·lecció real. Es perd en recarregar la pàgina.
  */
+type WishlistRecord = Omit<WishlistItem, 'team'> & { teamId: string };
+
 const ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export class MemoryShirtRepository implements ShirtRepository {
@@ -25,8 +37,10 @@ export class MemoryShirtRepository implements ShirtRepository {
   private images = new Map<string, ShirtImage>();
   private jobs: ImageJob[] = [];
   private jobItems = new Map<string, ImageJobItem>();
+  private wishlist = new Map<string, WishlistRecord>();
+  private budgets = new Map<number, number>();
 
-  private resolveTeam(input: ShirtInput): Team {
+  private resolveTeam(input: Pick<ShirtInput, 'teamName' | 'teamKind' | 'country'>): Team {
     const key = normalize(input.teamName);
     const existing = [...this.teams.values()].find((t) => normalize(t.name) === key);
     if (existing) {
@@ -148,6 +162,7 @@ export class MemoryShirtRepository implements ShirtRepository {
   async deleteShirt(id: string): Promise<void> {
     if (!this.shirts.delete(id)) throw new Error('La samarreta ja no existeix');
     for (const [imageId, img] of this.images) if (img.shirtId === id) this.images.delete(imageId);
+    for (const w of this.wishlist.values()) if (w.acquiredShirtId === id) w.acquiredShirtId = null;
   }
 
   // ───────── Fotografies ─────────
@@ -338,5 +353,81 @@ export class MemoryShirtRepository implements ShirtRepository {
     const item = this.jobItems.get(id);
     if (!item) throw new Error('L\u2019element de la feina ja no existeix');
     Object.assign(item, patch);
+  }
+
+  // ───────── Llista de desitjos i pressupost ─────────
+  private composeWish(w: WishlistRecord): WishlistItem {
+    const { teamId, ...rest } = w;
+    const team = this.teams.get(teamId);
+    if (!team) throw new Error('L’equip ja no existeix');
+    return { ...rest, team: { ...team } };
+  }
+
+  private wishFields(input: WishlistInput) {
+    const { teamName, teamKind, country, ...rest } = input;
+    void teamName;
+    void teamKind;
+    void country;
+    return rest;
+  }
+
+  async listWishlist(): Promise<WishlistItem[]> {
+    return [...this.wishlist.values()].map((w) => this.composeWish(w));
+  }
+
+  async createWishlistItem(input: WishlistInput): Promise<WishlistItem> {
+    const team = this.resolveTeam(input);
+    const now = new Date().toISOString();
+    const rec: WishlistRecord = {
+      ...this.wishFields(input),
+      id: crypto.randomUUID(),
+      teamId: team.id,
+      acquiredShirtId: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.wishlist.set(rec.id, rec);
+    return this.composeWish(rec);
+  }
+
+  async updateWishlistItem(id: string, input: WishlistInput): Promise<WishlistItem> {
+    const current = this.wishlist.get(id);
+    if (!current) throw new Error('El desig ja no existeix');
+    const team = this.resolveTeam(input);
+    const rec: WishlistRecord = {
+      ...current,
+      ...this.wishFields(input),
+      teamId: team.id,
+      updatedAt: new Date().toISOString(),
+    };
+    this.wishlist.set(id, rec);
+    return this.composeWish(rec);
+  }
+
+  async deleteWishlistItem(id: string): Promise<void> {
+    if (!this.wishlist.delete(id)) throw new Error('El desig ja no existeix');
+  }
+
+  async markWishlistAcquired(id: string, shirtId: string): Promise<WishlistItem> {
+    const current = this.wishlist.get(id);
+    if (!current) throw new Error('El desig ja no existeix');
+    this.requireShirt(shirtId);
+    const rec: WishlistRecord = { ...current, status: 'acquired', acquiredShirtId: shirtId, updatedAt: new Date().toISOString() };
+    this.wishlist.set(id, rec);
+    return this.composeWish(rec);
+  }
+
+  async listBudgets(): Promise<Budget[]> {
+    return [...this.budgets.entries()].map(([year, amount]) => ({ year, amount })).sort((a, b) => b.year - a.year);
+  }
+
+  async setBudget(year: number, amount: number): Promise<void> {
+    if (!Number.isInteger(year) || year < 1990 || year > 2100) throw new Error('Any no vàlid (1990–2100)');
+    if (!Number.isFinite(amount) || amount < 0) throw new Error('L’import ha de ser 0 o més');
+    this.budgets.set(year, Math.round(amount * 100) / 100);
+  }
+
+  async deleteBudget(year: number): Promise<void> {
+    this.budgets.delete(year);
   }
 }

@@ -1,7 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalize } from '../lib/catalog';
 import type { ImportItem } from '../lib/importer';
-import type { ImageJob, ImageJobItem, Shirt, ShirtImage, ShirtInput, Team } from '../types/shirt';
+import type {
+  Budget,
+  ImageJob,
+  ImageJobItem,
+  Shirt,
+  ShirtImage,
+  ShirtInput,
+  Team,
+  WishlistInput,
+  WishlistItem,
+} from '../types/shirt';
 import type {
   ImageJobItemPatch,
   ImageJobPatch,
@@ -12,18 +22,24 @@ import type {
 } from './shirtRepository';
 import {
   SHIRT_SELECT,
+  WISHLIST_SELECT,
   friendlyError,
   inputToRow,
+  rowToBudget,
   rowToImage,
   rowToJob,
   rowToJobItem,
   rowToShirt,
   rowToTeam,
+  rowToWishlist,
+  wishlistToRow,
+  type BudgetRow,
   type ImageFullRow,
   type JobItemRow,
   type JobRow,
   type ShirtRow,
   type TeamRow,
+  type WishlistRow,
 } from './shirtMapping';
 
 const BUCKET = 'shirt-photos';
@@ -83,7 +99,7 @@ export class SupabaseShirtRepository implements ShirtRepository {
     return rows.map(rowToTeam);
   }
 
-  private async ensureTeam(input: ShirtInput): Promise<string> {
+  private async ensureTeam(input: Pick<ShirtInput, 'teamName' | 'teamKind' | 'country'>): Promise<string> {
     const teams = await this.listTeams();
     const key = normalize(input.teamName);
     const existing = teams.find((t) => normalize(t.name) === key);
@@ -411,5 +427,72 @@ export class SupabaseShirtRepository implements ShirtRepository {
     if (patch.lastError !== undefined) row.last_error = patch.lastError;
     if (patch.candidatesFound !== undefined) row.candidates_found = patch.candidatesFound;
     await this.wrap(() => this.client.from('image_search_job_items').update(row).eq('id', id).select('id'));
+  }
+
+  // ───────── Llista de desitjos i pressupost ─────────
+  async listWishlist(): Promise<WishlistItem[]> {
+    const rows = await this.wrap<WishlistRow[]>(() =>
+      this.client.from('wishlist_items').select(WISHLIST_SELECT).order('priority').order('created_at'),
+    );
+    return rows.map(rowToWishlist);
+  }
+
+  async createWishlistItem(input: WishlistInput): Promise<WishlistItem> {
+    const teamId = await this.ensureTeam(input);
+    const row = await this.wrap<WishlistRow>(() =>
+      this.client.from('wishlist_items').insert(wishlistToRow(input, teamId)).select(WISHLIST_SELECT).single(),
+    );
+    return rowToWishlist(row);
+  }
+
+  async updateWishlistItem(id: string, input: WishlistInput): Promise<WishlistItem> {
+    const teamId = await this.ensureTeam(input);
+    const rows = await this.wrap<WishlistRow[]>(() =>
+      this.client.from('wishlist_items').update(wishlistToRow(input, teamId)).eq('id', id).select(WISHLIST_SELECT),
+    );
+    if (rows.length === 0) throw new Error('El desig ja no existeix');
+    return rowToWishlist(rows[0]);
+  }
+
+  async deleteWishlistItem(id: string): Promise<void> {
+    const rows = await this.wrap<{ id: string }[]>(() =>
+      this.client.from('wishlist_items').delete().eq('id', id).select('id'),
+    );
+    if (rows.length === 0) throw new Error('El desig ja no existeix');
+  }
+
+  async markWishlistAcquired(id: string, shirtId: string): Promise<WishlistItem> {
+    const rows = await this.wrap<WishlistRow[]>(() =>
+      this.client
+        .from('wishlist_items')
+        .update({ status: 'acquired', acquired_shirt_id: shirtId })
+        .eq('id', id)
+        .select(WISHLIST_SELECT),
+    );
+    if (rows.length === 0) throw new Error('El desig ja no existeix');
+    return rowToWishlist(rows[0]);
+  }
+
+  async listBudgets(): Promise<Budget[]> {
+    const rows = await this.wrap<BudgetRow[]>(() =>
+      this.client.from('budgets').select('year,amount').order('year', { ascending: false }),
+    );
+    return rows.map(rowToBudget);
+  }
+
+  async setBudget(year: number, amount: number): Promise<void> {
+    if (!Number.isInteger(year) || year < 1990 || year > 2100) throw new Error('Any no vàlid (1990–2100)');
+    if (!Number.isFinite(amount) || amount < 0) throw new Error('L’import ha de ser 0 o més');
+    // owner_id el posa la base de dades (auth.uid()); la clau única és (owner_id, year).
+    await this.wrap(() =>
+      this.client
+        .from('budgets')
+        .upsert({ year, amount: Math.round(amount * 100) / 100 }, { onConflict: 'owner_id,year' })
+        .select('year'),
+    );
+  }
+
+  async deleteBudget(year: number): Promise<void> {
+    await this.wrap(() => this.client.from('budgets').delete().eq('year', year).select('year'));
   }
 }

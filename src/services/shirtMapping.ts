@@ -1,5 +1,6 @@
 import type {
   Authenticity,
+  Budget,
   ImageJob,
   ImageJobItem,
   ImageStatus,
@@ -12,6 +13,9 @@ import type {
   ShirtVersion,
   Team,
   TeamKind,
+  WishlistInput,
+  WishlistItem,
+  WishlistStatus,
 } from '../types/shirt';
 
 export interface TeamRow {
@@ -231,3 +235,68 @@ export const rowToJobItem = (r: JobItemRow): ImageJobItem => ({
   lastError: r.last_error,
   candidatesFound: r.candidates_found,
 });
+
+// ───────── Llista de desitjos i pressupost ─────────
+export const WISHLIST_SELECT = '*, teams(id,name,kind,country)';
+
+export interface WishlistRow {
+  id: string;
+  season: string | null;
+  kit_type: KitType | null;
+  player_name: string | null;
+  priority: number;
+  max_price: number | string | null;
+  purchase_url: string | null;
+  reference_image_url: string | null;
+  notes: string | null;
+  status: WishlistStatus;
+  acquired_shirt_id: string | null;
+  created_at: string;
+  updated_at: string;
+  teams: TeamRow | null;
+}
+
+export function rowToWishlist(r: WishlistRow): WishlistItem {
+  if (!r.teams) throw new Error('El desig no té equip associat');
+  return {
+    id: r.id,
+    team: rowToTeam(r.teams),
+    season: r.season,
+    kitType: r.kit_type,
+    playerName: r.player_name,
+    priority: r.priority,
+    maxPrice: num(r.max_price),
+    purchaseUrl: r.purchase_url,
+    referenceImageUrl: r.reference_image_url,
+    notes: r.notes,
+    status: r.status,
+    acquiredShirtId: r.acquired_shirt_id,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/** `owner_id` NO s'envia mai: el posa la base de dades. */
+export function wishlistToRow(input: WishlistInput, teamId: string) {
+  return {
+    team_id: teamId,
+    season: input.season,
+    kit_type: input.kitType,
+    player_name: input.playerName,
+    priority: input.priority,
+    max_price: input.maxPrice,
+    purchase_url: input.purchaseUrl,
+    reference_image_url: input.referenceImageUrl,
+    notes: input.notes,
+    status: input.status,
+  };
+}
+
+export interface BudgetRow {
+  year: number;
+  amount: number | string;
+}
+
+export function rowToBudget(r: BudgetRow): Budget {
+  return { year: Number(r.year), amount: Number(r.amount) };
+}

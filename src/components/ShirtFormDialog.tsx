@@ -26,6 +26,9 @@ import { Modal, buttonCls, inputCls, primaryCls } from './ui';
 
 interface Props {
   shirt?: Shirt;
+  /** Valors de partida en crear (p. ex. des d'un desig adquirit). */
+  initial?: Partial<ShirtFormValues>;
+  title?: string;
   teams: Team[];
   brands: string[];
   onSubmit: (input: ShirtInput) => Promise<void>;
@@ -72,9 +75,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function ShirtFormDialog({ shirt, teams, brands, onSubmit, onClose }: Props) {
+export function ShirtFormDialog({ shirt, initial, teams, brands, onSubmit, onClose }: Props) {
   const uid = useId();
-  const [values, setValues] = useState<ShirtFormValues>(shirt ? shirtToFormValues(shirt) : emptyFormValues);
+  const [values, setValues] = useState<ShirtFormValues>(shirt ? shirtToFormValues(shirt) : { ...emptyFormValues, ...initial });
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

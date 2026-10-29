@@ -6,8 +6,9 @@ import { makeInput } from './helpers';
 
 interface Call {
   table: string;
-  action: 'select' | 'insert' | 'update' | 'delete';
+  action: 'select' | 'insert' | 'update' | 'delete' | 'upsert';
   payload?: Record<string, unknown>;
+  options?: Record<string, unknown>;
   filters: [string, unknown][];
 }
 type Result = { data: unknown; error: unknown };
@@ -30,6 +31,12 @@ function fakeClient(handler: (c: Call) => Result) {
         update: (p: Record<string, unknown>) => {
           call.action = 'update';
           call.payload = p;
+          return q;
+        },
+        upsert: (p: Record<string, unknown>, o?: Record<string, unknown>) => {
+          call.action = 'upsert';
+          call.payload = p;
+          call.options = o;
           return q;
         },
         delete: () => {
@@ -166,5 +173,56 @@ describe('SupabaseShirtRepository', () => {
       expect(await new SupabaseShirtRepository(client).importShirts([], meta)).toEqual({ batchId: '', imported: 0, failed: [] });
       expect(calls).toHaveLength(0);
     });
+  });
+});
+
+describe('SupabaseShirtRepository: desitjos i pressupost', () => {
+  const wishRow = {
+    id: 'w1', season: '2017-18', kit_type: 'home', player_name: null, priority: 2, max_price: '45.50',
+    purchase_url: null, reference_image_url: null, notes: null, status: 'wanted', acquired_shirt_id: null,
+    created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+    teams: { id: 't1', name: 'Girona', kind: 'club', country: null },
+  };
+  const input = {
+    teamName: 'Girona', teamKind: 'club' as const, country: null, season: '2017-18', kitType: 'home' as const,
+    playerName: null, priority: 2, maxPrice: 45.5, purchaseUrl: null, referenceImageUrl: null, notes: null,
+    status: 'wanted' as const,
+  };
+
+  it('crea un desig reutilitzant l’equip, sense owner_id, i converteix el preu numèric', async () => {
+    const { client, calls } = fakeClient((c) => {
+      if (c.table === 'teams') return { data: [{ id: 't1', name: 'Girona', kind: 'club', country: null }], error: null };
+      if (c.table === 'wishlist_items' && c.action === 'insert') return { data: wishRow, error: null };
+      throw new Error('crida inesperada');
+    });
+    const w = await new SupabaseShirtRepository(client).createWishlistItem(input);
+    expect(w.maxPrice).toBe(45.5);
+    expect(w.team.name).toBe('Girona');
+    const ins = calls.find((c) => c.table === 'wishlist_items' && c.action === 'insert');
+    expect(ins?.payload).toMatchObject({ team_id: 't1', priority: 2, max_price: 45.5, status: 'wanted' });
+    expect(ins?.payload).not.toHaveProperty('owner_id');
+  });
+
+  it('marca un desig com a adquirit i informa si ja no existeix', async () => {
+    const ok = fakeClient(() => ({ data: [{ ...wishRow, status: 'acquired', acquired_shirt_id: 's1' }], error: null }));
+    const w = await new SupabaseShirtRepository(ok.client).markWishlistAcquired('w1', 's1');
+    expect(w).toMatchObject({ status: 'acquired', acquiredShirtId: 's1' });
+    expect(ok.calls[0].payload).toEqual({ status: 'acquired', acquired_shirt_id: 's1' });
+    const gone = fakeClient(() => ({ data: [], error: null }));
+    await expect(new SupabaseShirtRepository(gone.client).markWishlistAcquired('x', 's1')).rejects.toThrow('ja no existeix');
+    await expect(new SupabaseShirtRepository(gone.client).deleteWishlistItem('x')).rejects.toThrow('ja no existeix');
+  });
+
+  it('desa el pressupost amb upsert per (owner_id, any) sense enviar owner_id', async () => {
+    const { client, calls } = fakeClient(() => ({ data: [{ year: 2026 }], error: null }));
+    await new SupabaseShirtRepository(client).setBudget(2026, 200.456);
+    expect(calls[0]).toMatchObject({ table: 'budgets', action: 'upsert', payload: { year: 2026, amount: 200.46 }, options: { onConflict: 'owner_id,year' } });
+    expect(calls[0].payload).not.toHaveProperty('owner_id');
+    await expect(new SupabaseShirtRepository(client).setBudget(1800, 1)).rejects.toThrow();
+  });
+
+  it('llegeix els pressupostos convertint els imports', async () => {
+    const { client } = fakeClient(() => ({ data: [{ year: 2026, amount: '200.00' }], error: null }));
+    expect(await new SupabaseShirtRepository(client).listBudgets()).toEqual([{ year: 2026, amount: 200 }]);
   });
 });
