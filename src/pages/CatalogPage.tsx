@@ -214,7 +214,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           onClose={() => setDialog({ type: 'detail', id: selected.id })}
         />
       )}
-      {dialog.type === 'export' && <ExportDialog shirts={shirts} onClose={close} />}
+      {dialog.type === 'export' && <ExportDialog shirts={shirts} repository={repository} onClose={close} />}
       {dialog.type === 'create' && (
         <ShirtFormDialog teams={teams} brands={facets.brands} onSubmit={save} onClose={close} />
       )}

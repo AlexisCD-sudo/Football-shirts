@@ -8,3 +8,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Service worker: només en producció (a desenvolupament faria difícil veure els canvis).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* sense service worker l'aplicació funciona igual, només no queda disponible sense connexió */
+    });
+  });
+}
