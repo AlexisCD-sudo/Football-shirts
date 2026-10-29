@@ -40,3 +40,24 @@ Res de nou: no hi ha variables d'entorn, funcions ni migracions. Fusiona la PR, 
 
 ## Nota
 El commit `78a13d9` (afegeix `text?` a `FetchLike`) és teu i no s'usa en aquesta implementació; es deixa tal qual.
+
+## Enllaçat en bloc (botó «Des de Football Kit Archive»)
+
+Per a col·leccions grans, el botó obre un quadre on s'enganxen **moltes adreces de cop** (d'imatges, com
+`…/camiseta-local-borussia-dortmund-2016-17.jpg`, o de fitxes) o el codi font d'una pàgina de FKA que hagis obert tu.
+
+1. L'app **no consulta FKA**: només llegeix el nom de cada enllaç enganxat (equip, temporada, equipació).
+2. Compara amb les teves samarretes (sinònims català/castellà/anglès, accents, FC/CF…).
+3. **Només preselecciona coincidències exactes** (equip + temporada + equipació iguals, sense variants). Les
+   probables (equipació no deduïda, nom semblant, variants com `gk-2`, Champions, manga llarga) queden sense marcar
+   i amb la raó; els dubtes es trien a mà. Equipació diferent no coincideix mai.
+4. Les samarretes que ja tenen foto no es toquen. Peces que no són samarreta (jaquetes…) i llistats s'ignoren.
+5. «Aplica» desa l'adreça de la imatge amb font `footballkitarchive` i la nota d'ús personal.
+
+**Com aconseguir els enllaços:** copia adreces d'imatge des del navegador, o a l'ordinador obre una pàgina de
+llistat de FKA, «Mostra el codi font» (Ctrl+U), copia-ho tot i enganxa-ho (es pot fer en diverses tandes).
+
+**Límits (honestos):** no es pot saber l'adreça d'una imatge només amb el nom (porta una carpeta aleatòria), així
+que un enllaç de fitxa sense imatge no permet desar cap foto. Els formats reals del HTML de FKA no s'han pogut
+comprovar des d'aquí. Si FKA bloqueja mostrar les imatges des d'un altre web, cal descarregar-les i pujar-les
+(flux «Una sola samarreta»).
