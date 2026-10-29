@@ -26,6 +26,10 @@ import {
   type TeamRow,
 } from './shirtMapping';
 
+const BUCKET = 'shirt-photos';
+const SIGNED_URL_SECONDS = 3600;
+const EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
 /** Dades al núvol. La seguretat la garanteix RLS; aquí mai s'envia `owner_id`. */
 export class SupabaseShirtRepository implements ShirtRepository {
   readonly persistence = 'cloud' as const;
@@ -43,11 +47,33 @@ export class SupabaseShirtRepository implements ShirtRepository {
     return result.data as T;
   }
 
+  /** URL temporals per a les fotos del bucket privat. Si falla, les fotos pròpies no es veuen però res més es trenca. */
+  private async signUrls(paths: (string | null | undefined)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(paths.filter((p): p is string => !!p))];
+    const out = new Map<string, string>();
+    if (unique.length === 0) return out;
+    try {
+      const { data, error } = await this.client.storage.from(BUCKET).createSignedUrls(unique, SIGNED_URL_SECONDS);
+      if (error || !data) return out;
+      for (const d of data) if (d.path && d.signedUrl) out.set(d.path, d.signedUrl);
+    } catch {
+      /* sense URL signada: es mostrarà el marcador de posició */
+    }
+    return out;
+  }
+
+  private async hydrate(rows: ShirtRow[]): Promise<Shirt[]> {
+    const signed = await this.signUrls(
+      rows.flatMap((r) => (r.shirt_images ?? []).filter((i) => i.is_primary && i.status === 'confirmed').map((i) => i.storage_path)),
+    );
+    return rows.map((r) => rowToShirt(r, signed));
+  }
+
   async listShirts(): Promise<Shirt[]> {
     const rows = await this.wrap<ShirtRow[]>(() =>
       this.client.from('shirts').select(SHIRT_SELECT).order('created_at', { ascending: false }),
     );
-    return rows.map(rowToShirt);
+    return this.hydrate(rows);
   }
 
   async listTeams(): Promise<Team[]> {
@@ -85,7 +111,7 @@ export class SupabaseShirtRepository implements ShirtRepository {
     const row = await this.wrap<ShirtRow>(() =>
       this.client.from('shirts').insert(inputToRow(input, teamId)).select(SHIRT_SELECT).single(),
     );
-    return rowToShirt(row);
+    return (await this.hydrate([row]))[0];
   }
 
   async updateShirt(id: string, input: ShirtInput): Promise<Shirt> {
@@ -95,7 +121,7 @@ export class SupabaseShirtRepository implements ShirtRepository {
     );
     // Amb RLS, una fila d'un altre usuari o ja esborrada simplement no retorna res.
     if (rows.length === 0) throw new Error('La samarreta ja no existeix');
-    return rowToShirt(rows[0]);
+    return (await this.hydrate([rows[0]]))[0];
   }
 
   async importShirts(
@@ -164,16 +190,22 @@ export class SupabaseShirtRepository implements ShirtRepository {
   }
 
   async deleteShirt(id: string): Promise<void> {
+    const own = await this.wrap<{ storage_path: string | null }[]>(() =>
+      this.client.from('shirt_images').select('storage_path').eq('shirt_id', id).not('storage_path', 'is', null),
+    );
     const rows = await this.wrap<{ id: string }[]>(() =>
       this.client.from('shirts').delete().eq('id', id).select('id'),
     );
     if (rows.length === 0) throw new Error('La samarreta ja no existeix');
+    const paths = own.map((o) => o.storage_path).filter((p): p is string => !!p);
+    if (paths.length > 0) await this.client.storage.from(BUCKET).remove(paths);
   }
 
   // ───────── Fotografies ─────────
   async listImages(): Promise<ShirtImage[]> {
     const rows = await this.wrap<ImageFullRow[]>(() => this.client.from('shirt_images').select('*'));
-    return rows.map(rowToImage);
+    const signed = await this.signUrls(rows.map((r) => r.storage_path));
+    return rows.map((r) => rowToImage(r, signed));
   }
 
   async addCandidates(shirtId: string, candidates: NewCandidate[]): Promise<number> {
@@ -296,8 +328,49 @@ export class SupabaseShirtRepository implements ShirtRepository {
     );
   }
 
+  async uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void> {
+    const ext = EXTENSIONS[contentType];
+    if (!ext) throw new Error('Format no admès: usa JPG, PNG o WebP.');
+    let userId: string | undefined;
+    try {
+      userId = (await this.client.auth.getUser()).data.user?.id;
+    } catch (e) {
+      throw friendlyError(e);
+    }
+    if (!userId) throw new Error('La sessió ha caducat. Torna a iniciar-la.');
+    // Ruta <usuari>/<samarreta>/<fitxer>: les polítiques del bucket només deixen tocar la carpeta pròpia.
+    const path = `${userId}/${shirtId}/${crypto.randomUUID()}.${ext}`;
+    const up = await this.client.storage.from(BUCKET).upload(path, file, { contentType, upsert: false });
+    if (up.error) throw friendlyError(up.error);
+    try {
+      await this.demotePrimary(shirtId);
+      const now = new Date().toISOString();
+      await this.wrap(() =>
+        this.client
+          .from('shirt_images')
+          .insert({
+            shirt_id: shirtId,
+            origin: 'stored',
+            status: 'confirmed',
+            is_primary: true,
+            source: 'upload',
+            license: 'Foto pròpia',
+            storage_path: path,
+            retrieved_at: now,
+            selected_at: now,
+          })
+          .select('id'),
+      );
+    } catch (e) {
+      await this.client.storage.from(BUCKET).remove([path]); // no deixa fitxers orfes
+      throw e;
+    }
+  }
+
   async deleteImage(imageId: string): Promise<void> {
+    const row = await this.imageRow(imageId);
     await this.wrap(() => this.client.from('shirt_images').delete().eq('id', imageId).select('id'));
+    if (row.storage_path) await this.client.storage.from(BUCKET).remove([row.storage_path]);
   }
 
   // ───────── Cerca per lots ─────────

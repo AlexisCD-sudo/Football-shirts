@@ -113,6 +113,8 @@ export interface ShirtImage {
   matchScore: number | null;
   retrievedAt: string | null;
   selectedAt: string | null;
+  /** Ruta al bucket privat (només si `origin` és `stored`). */
+  storagePath: string | null;
 }
 
 export type JobStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
