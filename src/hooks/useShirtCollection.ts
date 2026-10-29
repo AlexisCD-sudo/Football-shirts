@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ShirtRepository } from '../services/shirtRepository';
-import type { Shirt, ShirtInput, Team } from '../types/shirt';
+import type { Shirt, ShirtImage, ShirtInput, Team } from '../types/shirt';
 
 function messageOf(e: unknown): string {
   return e instanceof Error ? e.message : 'S’ha produït un error inesperat';
@@ -9,6 +9,7 @@ function messageOf(e: unknown): string {
 export function useShirtCollection(repo: ShirtRepository) {
   const [shirts, setShirts] = useState<Shirt[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [images, setImages] = useState<ShirtImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -16,9 +17,10 @@ export function useShirtCollection(repo: ShirtRepository) {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [s, t] = await Promise.all([repo.listShirts(), repo.listTeams()]);
+    const [s, t, i] = await Promise.all([repo.listShirts(), repo.listTeams(), repo.listImages()]);
     setShirts(s);
     setTeams(t);
+    setImages(i);
     setLastSync(new Date());
   }, [repo]);
 
@@ -86,5 +88,5 @@ export function useShirtCollection(repo: ShirtRepository) {
     [repo, refresh],
   );
 
-  return { shirts, teams, loading, error, reload: load, sync, syncing, syncError, lastSync, create, update, remove };
+  return { shirts, teams, images, loading, error, reload: load, sync, syncing, syncError, lastSync, create, update, remove };
 }

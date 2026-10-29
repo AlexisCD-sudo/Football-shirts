@@ -1,4 +1,18 @@
-import type { Authenticity, KitType, Shirt, ShirtCondition, ShirtInput, ShirtVersion, Team, TeamKind } from '../types/shirt';
+import type {
+  Authenticity,
+  ImageJob,
+  ImageJobItem,
+  ImageStatus,
+  JobStatus,
+  KitType,
+  Shirt,
+  ShirtCondition,
+  ShirtImage,
+  ShirtInput,
+  ShirtVersion,
+  Team,
+  TeamKind,
+} from '../types/shirt';
 
 export interface TeamRow {
   id: string;
@@ -134,3 +148,81 @@ export function friendlyError(e: unknown): Error {
   if (/jwt|expired/i.test(message)) return new Error('La sessió ha caducat. Torna a iniciar-la.');
   return new Error(message || 'S’ha produït un error inesperat');
 }
+
+// ───────── Fotografies i feines per lots ─────────
+
+export interface ImageFullRow {
+  id: string;
+  shirt_id: string;
+  origin: 'external' | 'stored';
+  status: ImageStatus;
+  is_primary: boolean;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  source_page_url: string | null;
+  source: string | null;
+  author: string | null;
+  license: string | null;
+  license_url: string | null;
+  match_score: number | string | null;
+  retrieved_at: string | null;
+  selected_at: string | null;
+}
+
+export function rowToImage(r: ImageFullRow): ShirtImage {
+  return {
+    id: r.id,
+    shirtId: r.shirt_id,
+    origin: r.origin,
+    status: r.status,
+    isPrimary: r.is_primary,
+    imageUrl: r.image_url,
+    thumbnailUrl: r.thumbnail_url,
+    sourcePageUrl: r.source_page_url,
+    source: r.source,
+    author: r.author,
+    license: r.license,
+    licenseUrl: r.license_url,
+    matchScore: r.match_score === null ? null : Number(r.match_score),
+    retrievedAt: r.retrieved_at,
+    selectedAt: r.selected_at,
+  };
+}
+
+export interface JobRow {
+  id: string;
+  status: JobStatus;
+  total: number;
+  done: number;
+  failed: number;
+  created_at: string;
+}
+
+export interface JobItemRow {
+  id: string;
+  job_id: string;
+  shirt_id: string;
+  status: JobStatus;
+  attempts: number;
+  last_error: string | null;
+  candidates_found: number;
+}
+
+export const rowToJob = (r: JobRow): ImageJob => ({
+  id: r.id,
+  status: r.status,
+  total: r.total,
+  done: r.done,
+  failed: r.failed,
+  createdAt: r.created_at,
+});
+
+export const rowToJobItem = (r: JobItemRow): ImageJobItem => ({
+  id: r.id,
+  jobId: r.job_id,
+  shirtId: r.shirt_id,
+  status: r.status,
+  attempts: r.attempts,
+  lastError: r.last_error,
+  candidatesFound: r.candidates_found,
+});

@@ -1,17 +1,19 @@
 import { formatDate, formatMoney } from '../lib/format';
 import { authenticityLabels, conditionLabels, kitTypeLabels, teamKindLabels, versionLabels } from '../lib/labels';
-import type { Shirt } from '../types/shirt';
-import { ShirtPlaceholder } from './ShirtPlaceholder';
+import type { Shirt, ShirtImage } from '../types/shirt';
+import { ShirtPhoto } from './ShirtPhoto';
 import { Modal, buttonCls, primaryCls } from './ui';
 
 interface Props {
   shirt: Shirt;
   onEdit: () => void;
   onDelete: () => void;
+  onPhotos?: () => void;
+  image?: ShirtImage;
   onClose: () => void;
 }
 
-export function ShirtDetailDialog({ shirt: s, onEdit, onDelete, onClose }: Props) {
+export function ShirtDetailDialog({ shirt: s, image, onEdit, onDelete, onPhotos, onClose }: Props) {
   const rows: [string, string | null][] = [
     ['Tipus', teamKindLabels[s.team.kind]],
     ['País', s.team.country],
@@ -42,11 +44,23 @@ export function ShirtDetailDialog({ shirt: s, onEdit, onDelete, onClose }: Props
   return (
     <Modal title={s.team.name} onClose={onClose} wide>
       <div className="grid gap-5 sm:grid-cols-[14rem_1fr]">
-        <div className="aspect-[4/5] overflow-hidden rounded-xl border border-line">
-          {s.photoUrl ? (
-            <img src={s.photoUrl} alt={`Samarreta ${s.team.name}`} className="h-full w-full object-cover" />
-          ) : (
-            <ShirtPlaceholder shirt={s} />
+        <div>
+          <div className="aspect-[4/5] overflow-hidden rounded-xl border border-line">
+            <ShirtPhoto shirt={s} eager />
+          </div>
+          {image && (
+            <p className="mt-1 text-xs text-muted">
+              {image.author ? `${image.author} · ` : ''}
+              {image.license ?? 'Llicència desconeguda'} ·{' '}
+              <a href={image.sourcePageUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                font
+              </a>
+            </p>
+          )}
+          {onPhotos && (
+            <button type="button" className={`${buttonCls} mt-2 w-full`} onClick={onPhotos}>
+              {s.photoUrl ? 'Gestiona la foto' : 'Cerca fotos'}
+            </button>
           )}
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
