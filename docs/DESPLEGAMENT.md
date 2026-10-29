@@ -38,4 +38,5 @@ Fitxers nous a `supabase/migrations/` (nom amb data), aplicats a mà al SQL Edit
 | Surt el mode de prova (avís taronja) en producció | Falten les variables `VITE_*` o no s'ha fet el redesplegament sense memòria cau. |
 | No pots iniciar sessió | Usuari no creat o no confirmat; contrasenya incorrecta; *Site URL* errònia. |
 | «No tens permís per fer aquesta operació» | La sessió ha caducat o les migracions no s'han aplicat completes; executa `real_project_checks.sql`. |
+| Vercel: «Command npm install exited with 1» | Vercel ha canviat la versió de Node per defecte. El projecte fixa Node 22.x a `engines` de `package.json`; no ho tornis a posar a `>=20`. |
 | La CI falla a la instal·lació | `package-lock.json` desactualitzat respecte de `package.json`: regenera'l i puja'l. |
