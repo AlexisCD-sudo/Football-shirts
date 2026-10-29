@@ -76,8 +76,8 @@ describe('parsers', () => {
   });
 
   it('les URL porten la consulta codificada', () => {
-    expect(commonsUrl('Barça 2010')).toContain(encodeURIComponent('Barça 2010'));
-    expect(openverseUrl('Barça 2010')).toContain(encodeURIComponent('Barça 2010'));
+    expect(new URL(commonsUrl('Barça 2010')).searchParams.get('gsrsearch')).toBe('Barça 2010');
+    expect(new URL(openverseUrl('Barça 2010')).searchParams.get('q')).toBe('Barça 2010');
   });
 });
 

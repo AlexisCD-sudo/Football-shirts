@@ -30,7 +30,7 @@ describe('Fotos', () => {
     render(<App repository={repo} />);
     expect(await screen.findByText('Per revisar')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: /Girona/ }));
-    await user.click(screen.getByRole('button', { name: 'Cerca fotos' }));
+    await user.click(within(await screen.findByRole('dialog', { name: /Girona/ })).getByRole('button', { name: 'Cerca fotos' }));
     const dialog = await screen.findByRole('dialog', { name: /Fotos/ });
     expect(within(dialog).getByText(/CC BY 4.0/)).toBeInTheDocument();
     expect(within(dialog).getByRole('link', { name: /pàgina d’origen/ })).toHaveAttribute('href', 'https://page.test/a');
@@ -46,7 +46,7 @@ describe('Fotos', () => {
     const repo = await withCandidate();
     render(<App repository={repo} />);
     await user.click(await screen.findByRole('button', { name: /Girona/ }));
-    await user.click(screen.getByRole('button', { name: 'Cerca fotos' }));
+    await user.click(within(await screen.findByRole('dialog', { name: /Girona/ })).getByRole('button', { name: 'Cerca fotos' }));
     const dialog = await screen.findByRole('dialog', { name: /Fotos/ });
     await user.click(within(dialog).getByRole('button', { name: 'Rebutja' }));
     expect(await within(dialog).findByText('Cap candidata per revisar.')).toBeInTheDocument();
