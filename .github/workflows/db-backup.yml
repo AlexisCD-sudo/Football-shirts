@@ -33,7 +33,7 @@ jobs:
           ls -la dump
       - name: Desa el volcat
         if: ${{ hashFiles('dump/*.sql') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: copia-bd
           path: dump/

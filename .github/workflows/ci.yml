@@ -34,7 +34,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high 2>&1 | tee ci-logs/audit.txt; exit "${PIPESTATUS[0]}"
       - name: Publica registres
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ci-resultats
           path: |
