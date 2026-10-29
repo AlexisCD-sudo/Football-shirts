@@ -49,7 +49,7 @@ export function WishlistPage({ repository }: { repository: ShirtRepository }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data]);
   const visible = useMemo(
     () => items.filter((i) => matches(i, filter)).sort((a, b) => a.priority - b.priority || a.team.name.localeCompare(b.team.name, 'ca')),
     [items, filter],
