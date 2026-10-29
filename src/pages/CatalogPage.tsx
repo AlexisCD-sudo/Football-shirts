@@ -5,6 +5,8 @@ import { ShirtDetailDialog } from '../components/ShirtDetailDialog';
 import { ShirtFormDialog } from '../components/ShirtFormDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { ImportDialog } from '../components/ImportDialog';
+import { BatchImageDialog } from '../components/BatchImageDialog';
+import { ImageSearchDialog } from '../components/ImageSearchDialog';
 import { ConfirmDialog, Spinner, buttonCls, inputCls, primaryCls } from '../components/ui';
 import { useShirtCollection } from '../hooks/useShirtCollection';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -24,12 +26,14 @@ type Dialog =
   | { type: 'create' }
   | { type: 'import' }
   | { type: 'export' }
+  | { type: 'batch' }
+  | { type: 'photos'; id: string }
   | { type: 'detail'; id: string }
   | { type: 'edit'; id: string }
   | { type: 'delete'; id: string };
 
 export function CatalogPage({ repository }: { repository: ShirtRepository }) {
-  const { shirts, teams, loading, error, reload, sync, syncing, syncError, lastSync, create, update, remove } =
+  const { shirts, teams, images, loading, error, reload, sync, syncing, syncError, lastSync, create, update, remove } =
     useShirtCollection(repository);
   const [filters, setFilters] = useState<CatalogFilters>(emptyFilters);
   const [sort, setSort] = useState<SortKey>('team');
@@ -41,7 +45,11 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
   const facets = useMemo(() => facetOptions(shirts), [shirts]);
   const visible = useMemo(() => applyCatalog(shirts, filters, sort), [shirts, filters, sort]);
   const selected: Shirt | undefined =
-    dialog.type !== 'none' && dialog.type !== 'create' && dialog.type !== 'import' && dialog.type !== 'export' ? shirts.find((s) => s.id === dialog.id) : undefined;
+    dialog.type !== 'none' && dialog.type !== 'create' && dialog.type !== 'import' && dialog.type !== 'export' && dialog.type !== 'batch' ? shirts.find((s) => s.id === dialog.id) : undefined;
+  const candidateShirtIds = useMemo(
+    () => new Set(images.filter((i) => i.status === 'candidate').map((i) => i.shirtId)),
+    [images],
+  );
   const filtered = activeFilterCount(filters) > 0;
 
   const close = () => {
@@ -100,6 +108,9 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           </div>
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'import' })}>
             Importa
+          </button>
+          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'batch' })}>
+            Cerca fotos
           </button>
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'export' })}>
             Exporta
@@ -174,7 +185,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
               }
             >
               {visible.map((s) => (
-                <ShirtCard key={s.id} shirt={s} view={view} onOpen={(sh) => setDialog({ type: 'detail', id: sh.id })} />
+                <ShirtCard key={s.id} shirt={s} view={view} hasCandidates={!s.photoUrl && candidateShirtIds.has(s.id)} onOpen={(sh) => setDialog({ type: 'detail', id: sh.id })} />
               ))}
             </ul>
           )}
@@ -183,6 +194,25 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
 
       {dialog.type === 'import' && (
         <ImportDialog repository={repository} shirts={shirts} teams={teams} onImported={sync} onClose={close} />
+      )}
+      {dialog.type === 'batch' && (
+        <BatchImageDialog
+          repository={repository}
+          shirts={shirts}
+          images={images}
+          onChanged={sync}
+          onReview={(id) => setDialog({ type: 'photos', id })}
+          onClose={close}
+        />
+      )}
+      {dialog.type === 'photos' && selected && (
+        <ImageSearchDialog
+          repository={repository}
+          shirt={selected}
+          images={images.filter((i) => i.shirtId === selected.id)}
+          onChanged={sync}
+          onClose={() => setDialog({ type: 'detail', id: selected.id })}
+        />
       )}
       {dialog.type === 'export' && <ExportDialog shirts={shirts} onClose={close} />}
       {dialog.type === 'create' && (
@@ -203,6 +233,8 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           onClose={close}
           onEdit={() => setDialog({ type: 'edit', id: selected.id })}
           onDelete={() => setDialog({ type: 'delete', id: selected.id })}
+          onPhotos={() => setDialog({ type: 'photos', id: selected.id })}
+          image={images.find((i) => i.shirtId === selected.id && i.status === 'confirmed' && i.isPrimary)}
         />
       )}
       {dialog.type === 'delete' && selected && (

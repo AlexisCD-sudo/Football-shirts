@@ -91,3 +91,49 @@ export interface ShirtInput {
   notes: string | null;
   curiosities: string | null;
 }
+
+export type ImageStatus = 'candidate' | 'confirmed' | 'rejected';
+export type ImageSource = 'wikimedia_commons' | 'openverse' | 'manual';
+
+/** Una fotografia associada a una samarreta (candidata, confirmada o rebutjada). */
+export interface ShirtImage {
+  id: string;
+  shirtId: string;
+  /** `external`: només una referència a Internet. `stored`: còpia al bucket privat (no implementat encara). */
+  origin: 'external' | 'stored';
+  status: ImageStatus;
+  isPrimary: boolean;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  sourcePageUrl: string | null;
+  source: string | null;
+  author: string | null;
+  license: string | null;
+  licenseUrl: string | null;
+  matchScore: number | null;
+  retrievedAt: string | null;
+  selectedAt: string | null;
+  /** Ruta al bucket privat (només si `origin` és `stored`). */
+  storagePath: string | null;
+}
+
+export type JobStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+export interface ImageJob {
+  id: string;
+  status: JobStatus;
+  total: number;
+  done: number;
+  failed: number;
+  createdAt: string;
+}
+
+export interface ImageJobItem {
+  id: string;
+  jobId: string;
+  shirtId: string;
+  status: JobStatus;
+  attempts: number;
+  lastError: string | null;
+  candidatesFound: number;
+}

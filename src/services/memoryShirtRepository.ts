@@ -1,7 +1,14 @@
 import { normalize } from '../lib/catalog';
 import type { ImportItem } from '../lib/importer';
-import type { Shirt, ShirtInput, Team } from '../types/shirt';
-import type { ImportMeta, ImportReport, ShirtRepository } from './shirtRepository';
+import type { ImageJob, ImageJobItem, Shirt, ShirtImage, ShirtInput, Team } from '../types/shirt';
+import type {
+  ImageJobItemPatch,
+  ImageJobPatch,
+  ImportMeta,
+  ImportReport,
+  NewCandidate,
+  ShirtRepository,
+} from './shirtRepository';
 
 type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
 
@@ -9,10 +16,15 @@ type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
  * Implementació provisional en memòria (fase 2). Comença BUIDA: no hi ha dades
  * de demostració a la col·lecció real. Es perd en recarregar la pàgina.
  */
+const ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export class MemoryShirtRepository implements ShirtRepository {
   readonly persistence = 'memory' as const;
   private teams = new Map<string, Team>();
   private shirts = new Map<string, StoredShirt>();
+  private images = new Map<string, ShirtImage>();
+  private jobs: ImageJob[] = [];
+  private jobItems = new Map<string, ImageJobItem>();
 
   private resolveTeam(input: ShirtInput): Team {
     const key = normalize(input.teamName);
@@ -40,7 +52,8 @@ export class MemoryShirtRepository implements ShirtRepository {
     const { teamId, ...rest } = s;
     const team = this.teams.get(teamId);
     if (!team) throw new Error('Equip inexistent');
-    return { ...rest, team: { ...team } };
+    const primary = [...this.images.values()].find((i) => i.shirtId === s.id && i.isPrimary && i.status === 'confirmed');
+    return { ...rest, photoUrl: primary?.imageUrl ?? null, team: { ...team } };
   }
 
   private fields(input: ShirtInput) {
@@ -134,5 +147,196 @@ export class MemoryShirtRepository implements ShirtRepository {
 
   async deleteShirt(id: string): Promise<void> {
     if (!this.shirts.delete(id)) throw new Error('La samarreta ja no existeix');
+    for (const [imageId, img] of this.images) if (img.shirtId === id) this.images.delete(imageId);
+  }
+
+  // ───────── Fotografies ─────────
+  async listImages(): Promise<ShirtImage[]> {
+    return [...this.images.values()].map((i) => ({ ...i }));
+  }
+
+  private requireShirt(id: string): void {
+    if (!this.shirts.has(id)) throw new Error('La samarreta ja no existeix');
+  }
+
+  private requireImage(id: string): ShirtImage {
+    const img = this.images.get(id);
+    if (!img) throw new Error('La imatge ja no existeix');
+    return img;
+  }
+
+  async addCandidates(shirtId: string, candidates: NewCandidate[]): Promise<number> {
+    this.requireShirt(shirtId);
+    const known = new Set([...this.images.values()].filter((i) => i.shirtId === shirtId).map((i) => i.imageUrl));
+    let added = 0;
+    for (const c of candidates) {
+      if (known.has(c.imageUrl)) continue;
+      known.add(c.imageUrl);
+      const img: ShirtImage = {
+        id: crypto.randomUUID(),
+        shirtId,
+        origin: 'external',
+        status: 'candidate',
+        isPrimary: false,
+        imageUrl: c.imageUrl,
+        thumbnailUrl: c.thumbnailUrl,
+        sourcePageUrl: c.sourcePageUrl,
+        source: c.source,
+        author: c.author,
+        license: c.license,
+        licenseUrl: c.licenseUrl,
+        matchScore: c.matchScore,
+        retrievedAt: new Date().toISOString(),
+        selectedAt: null,
+        storagePath: null,
+      };
+      this.images.set(img.id, img);
+      added += 1;
+    }
+    return added;
+  }
+
+  private demotePrimary(shirtId: string): void {
+    for (const img of this.images.values()) {
+      if (img.shirtId === shirtId && img.isPrimary) {
+        img.isPrimary = false;
+        img.status = 'candidate';
+      }
+    }
+  }
+
+  async confirmImage(imageId: string): Promise<void> {
+    const img = this.requireImage(imageId);
+    this.demotePrimary(img.shirtId);
+    img.status = 'confirmed';
+    img.isPrimary = true;
+    img.selectedAt = new Date().toISOString();
+  }
+
+  async unconfirmImage(imageId: string): Promise<void> {
+    const img = this.requireImage(imageId);
+    img.status = 'candidate';
+    img.isPrimary = false;
+    img.selectedAt = null;
+  }
+
+  async rejectImage(imageId: string): Promise<void> {
+    const img = this.requireImage(imageId);
+    img.status = 'rejected';
+    img.isPrimary = false;
+    img.selectedAt = null;
+  }
+
+  async addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string): Promise<void> {
+    this.requireShirt(shirtId);
+    const url = imageUrl.trim();
+    if (!/^https?:\/\//i.test(url)) throw new Error('L\u2019enllaç ha de començar per http:// o https://');
+    this.demotePrimary(shirtId);
+    const existing = [...this.images.values()].find((i) => i.shirtId === shirtId && i.imageUrl === url);
+    const now = new Date().toISOString();
+    if (existing) {
+      existing.status = 'confirmed';
+      existing.isPrimary = true;
+      existing.selectedAt = now;
+      return;
+    }
+    const img: ShirtImage = {
+      id: crypto.randomUUID(),
+      shirtId,
+      origin: 'external',
+      status: 'confirmed',
+      isPrimary: true,
+      imageUrl: url,
+      thumbnailUrl: null,
+      sourcePageUrl: sourcePageUrl?.trim() || url,
+      source: 'manual',
+      author: null,
+      license: null,
+      licenseUrl: null,
+      matchScore: null,
+      retrievedAt: now,
+      selectedAt: now,
+      storagePath: null,
+    };
+    this.images.set(img.id, img);
+  }
+
+  async uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void> {
+    this.requireShirt(shirtId);
+    if (!ALLOWED_UPLOAD_TYPES.includes(contentType)) throw new Error('Format no admès: usa JPG, PNG o WebP.');
+    this.demotePrimary(shirtId);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `blob:memory/${id}`;
+    this.images.set(id, {
+      id,
+      shirtId,
+      origin: 'stored',
+      status: 'confirmed',
+      isPrimary: true,
+      imageUrl: url,
+      thumbnailUrl: url,
+      sourcePageUrl: null,
+      source: 'upload',
+      author: null,
+      license: 'Foto pròpia',
+      licenseUrl: null,
+      matchScore: null,
+      retrievedAt: now,
+      selectedAt: now,
+      storagePath: `memory/${shirtId}/${id}`,
+    });
+  }
+
+  async deleteImage(imageId: string): Promise<void> {
+    this.requireImage(imageId);
+    this.images.delete(imageId);
+  }
+
+  // ───────── Cerca per lots ─────────
+  async createImageJob(shirtIds: string[]): Promise<ImageJob> {
+    const job: ImageJob = {
+      id: crypto.randomUUID(),
+      status: 'pending',
+      total: shirtIds.length,
+      done: 0,
+      failed: 0,
+      createdAt: new Date().toISOString(),
+    };
+    this.jobs.push(job);
+    for (const shirtId of shirtIds) {
+      const item: ImageJobItem = {
+        id: crypto.randomUUID(),
+        jobId: job.id,
+        shirtId,
+        status: 'pending',
+        attempts: 0,
+        lastError: null,
+        candidatesFound: 0,
+      };
+      this.jobItems.set(item.id, item);
+    }
+    return { ...job };
+  }
+
+  async getLatestImageJob() {
+    const job = this.jobs[this.jobs.length - 1];
+    if (!job) return null;
+    return {
+      job: { ...job },
+      items: [...this.jobItems.values()].filter((i) => i.jobId === job.id).map((i) => ({ ...i })),
+    };
+  }
+
+  async updateImageJob(id: string, patch: ImageJobPatch): Promise<void> {
+    const job = this.jobs.find((j) => j.id === id);
+    if (!job) throw new Error('La feina ja no existeix');
+    Object.assign(job, patch);
+  }
+
+  async updateImageJobItem(id: string, patch: ImageJobItemPatch): Promise<void> {
+    const item = this.jobItems.get(id);
+    if (!item) throw new Error('L\u2019element de la feina ja no existeix');
+    Object.assign(item, patch);
   }
 }

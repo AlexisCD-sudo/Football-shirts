@@ -52,3 +52,6 @@ docs/             documentació
 - No hi ha secrets al repositori. `.env.example` només és una plantilla.
 - `.gitignore` exclou `.env*`, `data/private/`, fitxers `.numbers`/`.xlsx` i exportacions.
 - Al frontend només anirà la clau pública `anon` de Supabase; mai la `service_role`.
+
+## Fotos
+Vegeu [docs/IMAGES.md](docs/IMAGES.md): cerca d'imatges amb llicència, revisió manual i cerca per lots.

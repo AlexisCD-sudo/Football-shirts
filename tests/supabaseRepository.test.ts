@@ -36,6 +36,10 @@ function fakeClient(handler: (c: Call) => Result) {
           call.action = 'delete';
           return q;
         },
+        not: (k: string, _op: string, v: unknown) => {
+          call.filters.push([`not ${k}`, v]);
+          return q;
+        },
         eq: (k: string, v: unknown) => {
           call.filters.push([k, v]);
           return q;
