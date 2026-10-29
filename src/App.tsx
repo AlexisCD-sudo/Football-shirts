@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useMemo, useState, type ReactNode } from 'react';
+import { InstallButton } from './components/InstallButton';
 import { Spinner, buttonCls } from './components/ui';
 import { useAuth } from './hooks/useAuth';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
@@ -36,6 +37,9 @@ function Shell({ children, actions }: { children: ReactNode; actions?: ReactNode
         </p>
       )}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
+      <footer className="mx-auto flex max-w-7xl justify-center px-4 pb-10 sm:px-6">
+        <InstallButton />
+      </footer>
     </div>
   );
 }

@@ -92,7 +92,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           value={filters.query}
           onChange={(e) => setFilters({ ...filters, query: e.target.value })}
         />
-        <div className="flex gap-2 sm:ml-auto">
+        <div className="flex flex-wrap gap-2 sm:ml-auto sm:flex-nowrap">
           <div role="group" aria-label="Vista" className="flex overflow-hidden rounded-md border border-line">
             {(['grid', 'list'] as const).map((v) => (
               <button

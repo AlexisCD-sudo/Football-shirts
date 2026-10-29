@@ -41,7 +41,7 @@ Recomptes per equip, país, marca, equipació, dècada, estat i versió, i una l
 Col·lecció → «Exporta» → «Descarrega la còpia (.json)». Fes-ho de tant en tant i guarda-la fora de l'aplicació. «Verifica una còpia» comprova que un fitxer és vàlid. Més detalls a `docs/PWA_BACKUPS.md`.
 
 ## Instal·lar al mòbil
-Android (Chrome): menú ⋮ → Instal·la l'aplicació. iPhone (Safari): Compartir → Afegeix a la pantalla d'inici.
+Al peu de la pàgina hi ha el botó **«Instal·la l’app»**: et mostra els passos del teu dispositiu (a Android, el diàleg d’instal·lació). A l’iPhone: botó Compartir → fes lliscar el menú cap amunt → «Afegeix a la pantalla d’inici».
 
 ## Problemes habituals
 | Passa | Què fer |
