@@ -6,6 +6,7 @@ import { ShirtFormDialog } from '../components/ShirtFormDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { ImportDialog } from '../components/ImportDialog';
 import { BatchImageDialog } from '../components/BatchImageDialog';
+import { FkaBulkDialog } from '../components/FkaBulkDialog';
 import { FkaImportDialog, type FkaDraft } from '../components/FkaImportDialog';
 import { ImageSearchDialog } from '../components/ImageSearchDialog';
 import { ConfirmDialog, Spinner, buttonCls, inputCls, primaryCls } from '../components/ui';
@@ -31,6 +32,7 @@ type Dialog =
   | { type: 'import' }
   | { type: 'export' }
   | { type: 'batch' }
+  | { type: 'fka-bulk' }
   | { type: 'fka' }
   | { type: 'fka-form'; draft: FkaDraft }
   | { type: 'photos'; id: string }
@@ -52,7 +54,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
   const facets = useMemo(() => facetOptions(shirts), [shirts]);
   const visible = useMemo(() => applyCatalog(shirts, filters, sort), [shirts, filters, sort]);
   const selected: Shirt | undefined =
-    dialog.type !== 'none' && dialog.type !== 'create' && dialog.type !== 'import' && dialog.type !== 'export' && dialog.type !== 'batch' && dialog.type !== 'fka' && dialog.type !== 'fka-form' ? shirts.find((s) => s.id === dialog.id) : undefined;
+    dialog.type !== 'none' && dialog.type !== 'create' && dialog.type !== 'import' && dialog.type !== 'export' && dialog.type !== 'batch' && dialog.type !== 'fka-bulk' && dialog.type !== 'fka' && dialog.type !== 'fka-form' ? shirts.find((s) => s.id === dialog.id) : undefined;
   const candidateShirtIds = useMemo(
     () => new Set(images.filter((i) => i.status === 'candidate').map((i) => i.shirtId)),
     [images],
@@ -144,7 +146,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'import' })}>
             Importa
           </button>
-          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'fka' })}>
+          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'fka-bulk' })}>
             Des de Football Kit Archive
           </button>
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'batch' })}>
@@ -241,6 +243,18 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
 
       {dialog.type === 'import' && (
         <ImportDialog repository={repository} shirts={shirts} teams={teams} onImported={sync} onClose={close} />
+      )}
+      {dialog.type === 'fka-bulk' && (
+        <FkaBulkDialog
+          shirts={shirts}
+          addImage={(id, url, page) => repository.addManualImage(id, url, page, { source: FKA_SOURCE, license: FKA_LICENSE })}
+          onSingle={() => setDialog({ type: 'fka' })}
+          onDone={(n) => {
+            void sync();
+            setNotice(`S’han enllaçat ${n} imatges de Football Kit Archive.`);
+          }}
+          onClose={close}
+        />
       )}
       {dialog.type === 'fka' && (
         <FkaImportDialog onContinue={(draft) => setDialog({ type: 'fka-form', draft })} onClose={close} />

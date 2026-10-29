@@ -42,6 +42,7 @@ describe('flux «Des de Football Kit Archive»', () => {
   async function openFlow(user: ReturnType<typeof userEvent.setup>, repo: MemoryShirtRepository) {
     render(<App repository={repo} />);
     await user.click(await screen.findByRole('button', { name: 'Des de Football Kit Archive' }));
+    await user.click(await screen.findByRole('button', { name: 'Una sola samarreta (pas a pas)' }));
     return screen.findByRole('dialog', { name: 'Afegeix des de Football Kit Archive' });
   }
 
