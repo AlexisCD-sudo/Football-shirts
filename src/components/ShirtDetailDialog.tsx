@@ -1,6 +1,7 @@
 import { formatDate, formatMoney } from '../lib/format';
 import { authenticityLabels, conditionLabels, kitTypeLabels, teamKindLabels, versionLabels } from '../lib/labels';
 import type { Shirt, ShirtImage } from '../types/shirt';
+import { safeHttpUrl } from './ImageSearchDialog';
 import { ShirtPhoto } from './ShirtPhoto';
 import { Modal, buttonCls, primaryCls } from './ui';
 
@@ -52,9 +53,11 @@ export function ShirtDetailDialog({ shirt: s, image, onEdit, onDelete, onPhotos,
             <p className="mt-1 text-xs text-muted">
               {image.author ? `${image.author} · ` : ''}
               {image.license ?? 'Llicència desconeguda'} ·{' '}
-              <a href={image.sourcePageUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                font
-              </a>
+              {safeHttpUrl(image.sourcePageUrl) && (
+                <a href={safeHttpUrl(image.sourcePageUrl) as string} target="_blank" rel="noopener noreferrer" className="underline">
+                  font
+                </a>
+              )}
             </p>
           )}
           {onPhotos && (

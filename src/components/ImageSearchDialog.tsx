@@ -16,6 +16,17 @@ interface Props {
   onClose: () => void;
 }
 
+/** Només enllaços http(s): una URL desada mai ha de poder executar codi. */
+export function safeHttpUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 const sourceLabels: Record<string, string> = {
   wikimedia_commons: 'Wikimedia Commons',
   openverse: 'Openverse',
@@ -25,24 +36,26 @@ const sourceLabels: Record<string, string> = {
 function Attribution({ image }: { image: ShirtImage }) {
   return (
     <p className="mt-1 text-xs text-muted">
-      {sourceLabels[image.source] ?? image.source}
+      {image.source ? (sourceLabels[image.source] ?? image.source) : 'Font desconeguda'}
       {image.author ? ` · ${image.author}` : ''}
       {image.license ? ` · ${image.license}` : ' · llicència desconeguda'}{' '}
-      <a href={image.sourcePageUrl} target="_blank" rel="noopener noreferrer" className="underline">
-        pàgina d&rsquo;origen
-      </a>
+      {safeHttpUrl(image.sourcePageUrl) && (
+        <a href={safeHttpUrl(image.sourcePageUrl) as string} target="_blank" rel="noopener noreferrer" className="underline">
+          pàgina d&rsquo;origen
+        </a>
+      )}
     </p>
   );
 }
 
-function Thumb({ src, alt }: { src: string; alt: string }) {
+function Thumb({ src, alt }: { src: string | null; alt: string }) {
   const [broken, setBroken] = useState(false);
-  return broken ? (
+  return broken || !safeHttpUrl(src) ? (
     <div className="flex h-full w-full items-center justify-center bg-card p-2 text-center text-xs text-muted">
       Imatge no disponible
     </div>
   ) : (
-    <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+    <img src={src as string} alt={alt} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" onError={() => setBroken(true)} />
   );
 }
 
