@@ -16,6 +16,8 @@ type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
  * Implementació provisional en memòria (fase 2). Comença BUIDA: no hi ha dades
  * de demostració a la col·lecció real. Es perd en recarregar la pàgina.
  */
+const ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export class MemoryShirtRepository implements ShirtRepository {
   readonly persistence = 'memory' as const;
   private teams = new Map<string, Team>();
@@ -186,6 +188,7 @@ export class MemoryShirtRepository implements ShirtRepository {
         matchScore: c.matchScore,
         retrievedAt: new Date().toISOString(),
         selectedAt: null,
+        storagePath: null,
       };
       this.images.set(img.id, img);
       added += 1;
@@ -253,8 +256,36 @@ export class MemoryShirtRepository implements ShirtRepository {
       matchScore: null,
       retrievedAt: now,
       selectedAt: now,
+      storagePath: null,
     };
     this.images.set(img.id, img);
+  }
+
+  async uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void> {
+    this.requireShirt(shirtId);
+    if (!ALLOWED_UPLOAD_TYPES.includes(contentType)) throw new Error('Format no admès: usa JPG, PNG o WebP.');
+    this.demotePrimary(shirtId);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `blob:memory/${id}`;
+    this.images.set(id, {
+      id,
+      shirtId,
+      origin: 'stored',
+      status: 'confirmed',
+      isPrimary: true,
+      imageUrl: url,
+      thumbnailUrl: url,
+      sourcePageUrl: null,
+      source: 'upload',
+      author: null,
+      license: 'Foto pròpia',
+      licenseUrl: null,
+      matchScore: null,
+      retrievedAt: now,
+      selectedAt: now,
+      storagePath: `memory/${shirtId}/${id}`,
+    });
   }
 
   async deleteImage(imageId: string): Promise<void> {

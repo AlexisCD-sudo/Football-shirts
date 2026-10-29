@@ -61,6 +61,12 @@ export interface ShirtRepository {
   rejectImage(imageId: string): Promise<void>;
   /** Afegeix i confirma una imatge a partir d'un enllaç escrit per la persona. */
   addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string): Promise<void>;
+  /**
+   * Desa una foto pròpia (fitxer ja validat i redimensionat) i la confirma com a principal.
+   * A la versió al núvol va al bucket privat; la foto anterior passa a candidata.
+   */
+  uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void>;
+  /** Elimina la imatge (i, si és una còpia pròpia, també el fitxer). */
   deleteImage(imageId: string): Promise<void>;
 
   // ───────── Cerca per lots (persistent, amb pausa i represa) ─────────

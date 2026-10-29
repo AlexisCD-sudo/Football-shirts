@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { buildQueries, describeShirt } from '../lib/imageSearch/query';
 import { toNewCandidate } from '../lib/imageSearch/batch';
+import { preparePhoto, validatePhotoFile, ACCEPTED_TYPES } from '../lib/photoUpload';
 import { PROBABLE, confidence, confidenceLabels } from '../lib/imageSearch/score';
 import { allSourcesFailed, searchImages } from '../lib/imageSearch/search';
 import type { ShirtRepository } from '../services/shirtRepository';
@@ -27,6 +28,12 @@ export function safeHttpUrl(url: string | null): string | null {
   }
 }
 
+/** Adreça admissible per a <img>: http(s), o blob: (només la memòria de proves, mai una URL escrita per la persona). */
+export function safeImageSrc(url: string | null): string | null {
+  if (url?.startsWith('blob:')) return url;
+  return safeHttpUrl(url);
+}
+
 const sourceLabels: Record<string, string> = {
   wikimedia_commons: 'Wikimedia Commons',
   openverse: 'Openverse',
@@ -34,6 +41,7 @@ const sourceLabels: Record<string, string> = {
 };
 
 function Attribution({ image }: { image: ShirtImage }) {
+  if (image.origin === 'stored') return <p className="mt-1 text-xs text-muted">Foto pròpia (privada, només la veus tu)</p>;
   return (
     <p className="mt-1 text-xs text-muted">
       {image.source ? (sourceLabels[image.source] ?? image.source) : 'Font desconeguda'}
@@ -50,12 +58,12 @@ function Attribution({ image }: { image: ShirtImage }) {
 
 function Thumb({ src, alt }: { src: string | null; alt: string }) {
   const [broken, setBroken] = useState(false);
-  return broken || !safeHttpUrl(src) ? (
+  return broken || !safeImageSrc(src) ? (
     <div className="flex h-full w-full items-center justify-center bg-card p-2 text-center text-xs text-muted">
       Imatge no disponible
     </div>
   ) : (
-    <img src={src as string} alt={alt} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+    <img src={safeImageSrc(src) as string} alt={alt} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" onError={() => setBroken(true)} />
   );
 }
 
@@ -68,6 +76,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
   const [linkSource, setLinkSource] = useState('');
   const [compare, setCompare] = useState<string[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   const confirmed = images.find((i) => i.status === 'confirmed' && i.isPrimary);
@@ -91,6 +100,22 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
       setError(e instanceof Error ? e.message : 'No s’ha pogut completar l’acció');
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function upload(file: File) {
+    const problem = validatePhotoFile(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setUploading(true);
+    setMessage(null);
+    try {
+      const { blob, contentType } = await preparePhoto(file);
+      await run(() => repository.uploadPhoto(shirt.id, blob, contentType));
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -144,10 +169,22 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
             </div>
             <div className="text-sm">
               <Attribution image={confirmed} />
-              <p className="mt-1 text-xs text-muted">Referència externa (la imatge no es copia a la teva base de dades).</p>
+              {confirmed.origin === 'external' && (
+                <p className="mt-1 text-xs text-muted">Referència externa (la imatge no es copia a la teva base de dades).</p>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className={buttonCls} disabled={busyId !== null} onClick={() => void run(() => repository.unconfirmImage(confirmed.id), confirmed.id)}>
-                  Treu la foto
+                <button
+                  type="button"
+                  className={buttonCls}
+                  disabled={busyId !== null}
+                  onClick={() =>
+                    void run(
+                      () => (confirmed.origin === 'stored' ? repository.deleteImage(confirmed.id) : repository.unconfirmImage(confirmed.id)),
+                      confirmed.id,
+                    )
+                  }
+                >
+                  {confirmed.origin === 'stored' ? 'Elimina la foto' : 'Treu la foto'}
                 </button>
               </div>
             </div>
@@ -155,6 +192,26 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
         ) : (
           <p className="mt-1 text-sm text-muted">Aquesta samarreta encara no té foto.</p>
         )}
+      </section>
+
+      <section aria-label="Fotos pròpies" className="mt-6 border-t border-line pt-4">
+        <h3 className="font-display text-lg font-bold">Puja una foto pròpia</h3>
+        <label className={`${buttonCls} mt-2 cursor-pointer`}>
+          {uploading ? 'Pujant…' : 'Puja una foto'}
+          <input
+            type="file"
+            accept={ACCEPTED_TYPES.join(',')}
+            className="sr-only"
+            aria-label="Puja una foto"
+            disabled={uploading || busyId !== null}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) void upload(file);
+            }}
+          />
+        </label>
+        <p className="mt-1 text-xs text-muted">JPG, PNG o WebP. Es redueix a 1600 px i es desa al teu espai privat; només la veus tu.</p>
       </section>
 
       <section aria-label="Cerca" className="mt-6 border-t border-line pt-4">
@@ -206,8 +263,13 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
                     <button type="button" className={primaryCls} disabled={busyId !== null} onClick={() => void run(() => repository.confirmImage(c.id), c.id)}>
                       Confirma
                     </button>
-                    <button type="button" className={buttonCls} disabled={busyId !== null} onClick={() => void run(() => repository.rejectImage(c.id), c.id)}>
-                      Rebutja
+                    <button
+                      type="button"
+                      className={buttonCls}
+                      disabled={busyId !== null}
+                      onClick={() => void run(() => (c.origin === 'stored' ? repository.deleteImage(c.id) : repository.rejectImage(c.id)), c.id)}
+                    >
+                      {c.origin === 'stored' ? 'Elimina' : 'Rebutja'}
                     </button>
                     <label className="flex items-center gap-1 text-xs">
                       <input type="checkbox" checked={compare.includes(c.id)} onChange={() => toggleCompare(c.id)} disabled={!compare.includes(c.id) && compare.length >= 3} />

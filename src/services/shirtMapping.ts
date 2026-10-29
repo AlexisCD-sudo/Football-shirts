@@ -25,6 +25,7 @@ export interface ImageRow {
   image_url: string | null;
   is_primary: boolean;
   status: string;
+  storage_path?: string | null;
 }
 
 export interface ShirtRow {
@@ -60,7 +61,7 @@ export interface ShirtRow {
 }
 
 /** Columnes que es demanen sempre: la samarreta, el seu equip i les imatges confirmades. */
-export const SHIRT_SELECT = '*, teams(id,name,kind,country), shirt_images(image_url,is_primary,status)';
+export const SHIRT_SELECT = '*, teams(id,name,kind,country), shirt_images(image_url,is_primary,status,storage_path)';
 
 const num = (v: number | string | null): number | null => (v === null || v === undefined ? null : Number(v));
 
@@ -68,7 +69,8 @@ export function rowToTeam(r: TeamRow): Team {
   return { id: r.id, name: r.name, kind: r.kind, country: r.country };
 }
 
-export function rowToShirt(r: ShirtRow): Shirt {
+/** `signed`: adreces temporals de les fotos pròpies (ruta → URL signada). */
+export function rowToShirt(r: ShirtRow, signed?: Map<string, string>): Shirt {
   if (!r.teams) throw new Error('La samarreta no té equip associat');
   const primary = (r.shirt_images ?? []).find((i) => i.is_primary && i.status === 'confirmed');
   return {
@@ -95,7 +97,7 @@ export function rowToShirt(r: ShirtRow): Shirt {
     location: r.location,
     notes: r.notes,
     curiosities: r.curiosities,
-    photoUrl: primary?.image_url ?? null,
+    photoUrl: primary?.storage_path ? (signed?.get(primary.storage_path) ?? null) : (primary?.image_url ?? null),
     importBatchId: r.import_batch_id ?? null,
     sourceRow: r.source_row ?? null,
     originalData: r.original_data ?? null,
@@ -167,17 +169,19 @@ export interface ImageFullRow {
   match_score: number | string | null;
   retrieved_at: string | null;
   selected_at: string | null;
+  storage_path: string | null;
 }
 
-export function rowToImage(r: ImageFullRow): ShirtImage {
+export function rowToImage(r: ImageFullRow, signed?: Map<string, string>): ShirtImage {
+  const own = r.storage_path ? (signed?.get(r.storage_path) ?? null) : null;
   return {
     id: r.id,
     shirtId: r.shirt_id,
     origin: r.origin,
     status: r.status,
     isPrimary: r.is_primary,
-    imageUrl: r.image_url,
-    thumbnailUrl: r.thumbnail_url,
+    imageUrl: r.storage_path ? own : r.image_url,
+    thumbnailUrl: r.storage_path ? own : r.thumbnail_url,
     sourcePageUrl: r.source_page_url,
     source: r.source,
     author: r.author,
@@ -186,6 +190,7 @@ export function rowToImage(r: ImageFullRow): ShirtImage {
     matchScore: r.match_score === null ? null : Number(r.match_score),
     retrievedAt: r.retrieved_at,
     selectedAt: r.selected_at,
+    storagePath: r.storage_path ?? null,
   };
 }
 
