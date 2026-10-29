@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { FKA_HOME, FKA_LICENSE, FKA_SOURCE, fkaSearchText, isFkaUrl } from '../lib/fka';
 import { buildQueries, describeShirt } from '../lib/imageSearch/query';
 import { toNewCandidate } from '../lib/imageSearch/batch';
 import { preparePhoto, validatePhotoFile, ACCEPTED_TYPES } from '../lib/photoUpload';
@@ -38,10 +39,23 @@ const sourceLabels: Record<string, string> = {
   wikimedia_commons: 'Wikimedia Commons',
   openverse: 'Openverse',
   manual: 'Enllaç manual',
+  footballkitarchive: 'Football Kit Archive',
 };
 
 function Attribution({ image }: { image: ShirtImage }) {
-  if (image.origin === 'stored') return <p className="mt-1 text-xs text-muted">Foto pròpia (privada, només la veus tu)</p>;
+  if (image.origin === 'stored') {
+    const link = safeHttpUrl(image.sourcePageUrl);
+    return (
+      <p className="mt-1 text-xs text-muted">
+        {image.source === FKA_SOURCE ? 'Football Kit Archive (còpia privada)' : 'Foto pròpia (privada, només la veus tu)'}{' '}
+        {link && (
+          <a href={link} target="_blank" rel="noopener noreferrer" className="underline">
+            fitxa original
+          </a>
+        )}
+      </p>
+    );
+  }
   return (
     <p className="mt-1 text-xs text-muted">
       {image.source ? (sourceLabels[image.source] ?? image.source) : 'Font desconeguda'}
@@ -194,6 +208,17 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
         )}
       </section>
 
+      <section aria-label="Football Kit Archive" className="mt-6 border-t border-line pt-4">
+        <h3 className="font-display text-lg font-bold">Football Kit Archive (font principal)</h3>
+        <p className="mt-1 text-sm text-muted">
+          No té API i bloqueja l&rsquo;accés automàtic, així que la cerca és manual: obre el web, troba la samarreta i després puja la imatge o enganxa-ne l&rsquo;adreça aquí sota. Text suggerit per cercar:{' '}
+          <strong>{fkaSearchText({ teamName: shirt.team.name, season: shirt.season, kitType: shirt.kitType }) || shirt.team.name}</strong>
+        </p>
+        <a href={FKA_HOME} target="_blank" rel="noopener noreferrer" className={`${buttonCls} mt-2`}>
+          Obre Football Kit Archive ↗
+        </a>
+      </section>
+
       <section aria-label="Fotos pròpies" className="mt-6 border-t border-line pt-4">
         <h3 className="font-display text-lg font-bold">Puja una foto pròpia</h3>
         <label className={`${buttonCls} mt-2 cursor-pointer`}>
@@ -215,7 +240,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
       </section>
 
       <section aria-label="Cerca" className="mt-6 border-t border-line pt-4">
-        <h3 className="font-display text-lg font-bold">Cerca a Internet</h3>
+        <h3 className="font-display text-lg font-bold">Cerca automàtica (alternativa)</h3>
         <form onSubmit={(e) => void search(e)} className="mt-2 flex gap-2">
           <input aria-label="Consulta de cerca" className={inputCls} value={query} onChange={(e) => setQuery(e.target.value)} />
           <button type="submit" className={primaryCls} disabled={searching || !query.trim()}>
@@ -302,7 +327,13 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
           onSubmit={(e) => {
             e.preventDefault();
             void run(async () => {
-              await repository.addManualImage(shirt.id, link.trim(), linkSource.trim() || undefined);
+              const fromFka = isFkaUrl(linkSource.trim()) || isFkaUrl(link.trim());
+              await repository.addManualImage(
+                shirt.id,
+                link.trim(),
+                linkSource.trim() || undefined,
+                fromFka ? { source: FKA_SOURCE, license: FKA_LICENSE } : undefined,
+              );
               setLink('');
               setLinkSource('');
             });
@@ -316,7 +347,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
             </button>
           </div>
         </form>
-        <p className="mt-1 text-xs text-muted">Es desa com a referència externa amb llicència desconeguda. Assegura&rsquo;t que en pots fer ús.</p>
+        <p className="mt-1 text-xs text-muted">Es desa com a referència externa. Si la pàgina d&rsquo;origen o la imatge són de Football Kit Archive, es marca com a font «Football Kit Archive» amb la nota d&rsquo;ús personal; si no, la llicència queda com a desconeguda.</p>
       </section>
     </Modal>
   );

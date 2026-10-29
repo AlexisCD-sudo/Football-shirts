@@ -226,3 +226,21 @@ describe('SupabaseShirtRepository: desitjos i pressupost', () => {
     expect(await new SupabaseShirtRepository(client).listBudgets()).toEqual([{ year: 2026, amount: 200 }]);
   });
 });
+
+describe('SupabaseShirtRepository: imatge manual amb origen', () => {
+  it('desa la font i el permís, i exigeix http(s)', async () => {
+    const { client, calls } = fakeClient((c) => (c.action === 'select' && c.table === 'shirt_images' ? { data: [], error: null } : { data: [{ id: 'i1' }], error: null }));
+    const repo = new SupabaseShirtRepository(client);
+    await repo.addManualImage('s1', 'https://img.test/a.jpg', 'https://www.footballkitarchive.com/es/x/', {
+      source: 'footballkitarchive',
+      license: 'Ús personal',
+    });
+    const ins = calls.find((c) => c.table === 'shirt_images' && c.action === 'insert');
+    expect(ins?.payload).toMatchObject({
+      origin: 'external', source: 'footballkitarchive', license: 'Ús personal',
+      source_page_url: 'https://www.footballkitarchive.com/es/x/', image_url: 'https://img.test/a.jpg',
+    });
+    expect(ins?.payload).not.toHaveProperty('owner_id');
+    await expect(repo.addManualImage('s1', 'javascript:alert(1)')).rejects.toThrow(/http/);
+  });
+});

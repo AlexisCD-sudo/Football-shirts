@@ -17,8 +17,10 @@ import type {
   ImageJobPatch,
   ImportMeta,
   ImportReport,
+  ManualImageMeta,
   NewCandidate,
   ShirtRepository,
+  UploadMeta,
 } from './shirtRepository';
 import {
   SHIRT_SELECT,
@@ -314,7 +316,7 @@ export class SupabaseShirtRepository implements ShirtRepository {
     );
   }
 
-  async addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string): Promise<void> {
+  async addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string, meta?: ManualImageMeta): Promise<void> {
     const url = imageUrl.trim();
     if (!/^https?:\/\//i.test(url)) throw new Error('L\u2019enllaç ha de començar per http:// o https://');
     const existing = await this.wrap<{ id: string }[]>(() =>
@@ -336,7 +338,8 @@ export class SupabaseShirtRepository implements ShirtRepository {
           is_primary: true,
           image_url: url,
           source_page_url: sourcePageUrl?.trim() || url,
-          source: 'manual',
+          source: meta?.source ?? 'manual',
+          license: meta?.license ?? null,
           retrieved_at: now,
           selected_at: now,
         })
@@ -344,7 +347,7 @@ export class SupabaseShirtRepository implements ShirtRepository {
     );
   }
 
-  async uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void> {
+  async uploadPhoto(shirtId: string, file: Blob, contentType: string, meta?: UploadMeta): Promise<void> {
     const ext = EXTENSIONS[contentType];
     if (!ext) throw new Error('Format no admès: usa JPG, PNG o WebP.');
     let userId: string | undefined;
@@ -369,8 +372,9 @@ export class SupabaseShirtRepository implements ShirtRepository {
             origin: 'stored',
             status: 'confirmed',
             is_primary: true,
-            source: 'upload',
-            license: 'Foto pròpia',
+            source: meta?.source ?? 'upload',
+            license: meta?.license ?? 'Foto pròpia',
+            source_page_url: meta?.sourcePageUrl ?? null,
             storage_path: path,
             retrieved_at: now,
             selected_at: now,

@@ -49,7 +49,16 @@ export function ShirtDetailDialog({ shirt: s, image, onEdit, onDelete, onPhotos,
           <div className="aspect-[4/5] overflow-hidden rounded-xl border border-line">
             <ShirtPhoto shirt={s} eager />
           </div>
-          {image?.origin === 'stored' && <p className="mt-1 text-xs text-muted">Foto pròpia</p>}
+          {image?.origin === 'stored' && (
+            <p className="mt-1 text-xs text-muted">
+              {image.source === 'footballkitarchive' ? 'Football Kit Archive (còpia privada) ' : 'Foto pròpia '}
+              {image.source === 'footballkitarchive' && safeHttpUrl(image.sourcePageUrl) && (
+                <a href={safeHttpUrl(image.sourcePageUrl) as string} target="_blank" rel="noopener noreferrer" className="underline">
+                  fitxa original
+                </a>
+              )}
+            </p>
+          )}
           {image && image.origin !== 'stored' && (
             <p className="mt-1 text-xs text-muted">
               {image.author ? `${image.author} · ` : ''}

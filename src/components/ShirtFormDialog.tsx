@@ -28,6 +28,7 @@ interface Props {
   shirt?: Shirt;
   /** Valors de partida en crear (p. ex. des d'un desig adquirit). */
   initial?: Partial<ShirtFormValues>;
+  /** Títol del diàleg en crear; per defecte «Nova samarreta». */
   title?: string;
   teams: Team[];
   brands: string[];
@@ -75,7 +76,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function ShirtFormDialog({ shirt, initial, teams, brands, onSubmit, onClose }: Props) {
+export function ShirtFormDialog({ shirt, initial, title, teams, brands, onSubmit, onClose }: Props) {
   const uid = useId();
   const [values, setValues] = useState<ShirtFormValues>(shirt ? shirtToFormValues(shirt) : { ...emptyFormValues, ...initial });
   const [errors, setErrors] = useState<Errors>({});
@@ -122,7 +123,7 @@ export function ShirtFormDialog({ shirt, initial, teams, brands, onSubmit, onClo
   );
 
   return (
-    <Modal title={shirt ? 'Edita la samarreta' : 'Nova samarreta'} onClose={onClose} wide>
+    <Modal title={shirt ? 'Edita la samarreta' : (title ?? 'Nova samarreta')} onClose={onClose} wide>
       <form onSubmit={submit} noValidate>
         <Section title="Identificació">
           <Field label="Equip o selecció" htmlFor={id('teamName')} error={errors.teamName}>

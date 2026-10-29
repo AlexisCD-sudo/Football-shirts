@@ -40,6 +40,19 @@ export interface NewCandidate {
   matchScore: number | null;
 }
 
+/** Dades d'origen d'una imatge afegida a mà (p. ex. des de Football Kit Archive). */
+export interface ManualImageMeta {
+  source?: ImageSource;
+  license?: string | null;
+}
+
+/** Dades d'origen d'una foto pujada. */
+export interface UploadMeta {
+  source?: ImageSource;
+  sourcePageUrl?: string | null;
+  license?: string | null;
+}
+
 export type ImageJobPatch = Partial<Pick<ImageJob, 'status' | 'done' | 'failed'>>;
 export type ImageJobItemPatch = Partial<Pick<ImageJobItem, 'status' | 'attempts' | 'lastError' | 'candidatesFound'>>;
 
@@ -71,12 +84,12 @@ export interface ShirtRepository {
   unconfirmImage(imageId: string): Promise<void>;
   rejectImage(imageId: string): Promise<void>;
   /** Afegeix i confirma una imatge a partir d'un enllaç escrit per la persona. */
-  addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string): Promise<void>;
+  addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string, meta?: ManualImageMeta): Promise<void>;
   /**
    * Desa una foto pròpia (fitxer ja validat i redimensionat) i la confirma com a principal.
    * A la versió al núvol va al bucket privat; la foto anterior passa a candidata.
    */
-  uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void>;
+  uploadPhoto(shirtId: string, file: Blob, contentType: string, meta?: UploadMeta): Promise<void>;
   /** Elimina la imatge (i, si és una còpia pròpia, també el fitxer). */
   deleteImage(imageId: string): Promise<void>;
 

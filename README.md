@@ -7,6 +7,7 @@ Aplicació web (en català) per gestionar una col·lecció personal de samarrete
 ## Què fa
 - **Col·lecció:** quadrícula i llista, cerca sense accents, filtres combinables (equip, país, temporada, marca, equipació, versió, foto), ordenació, alta/edició/baixa amb validació.
 - **Importació i exportació:** CSV i Excel amb vista prèvia, duplicats detectats (mai fusionats ni esborrats) i informe; exportació a Excel, CSV i JSON. [`docs/IMPORT_EXPORT.md`](docs/IMPORT_EXPORT.md)
+- **Football Kit Archive (assistit):** afegir samarretes i fotos des de les fitxes de FKA (sense API oficial: flux manual guiat). [`docs/FOOTBALL_KIT_ARCHIVE.md`](docs/FOOTBALL_KIT_ARCHIVE.md)
 - **Fotos:** cerca a Wikimedia Commons i Openverse (imatges amb llicència), revisió manual (mai s'assigna res sola), cerca per lots amb pausa i represa, enllaç manual i pujada de fotos pròpies al bucket privat. [`docs/IMAGES.md`](docs/IMAGES.md)
 - **Desitjos:** prioritat, preu màxim, enllaç de compra; «Ja la tinc» la converteix en samarreta.
 - **Finances:** despesa, preu mitjà, valor estimat, balanç i pressupost anual. Mai s'inventen preus que falten.

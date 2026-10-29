@@ -93,7 +93,7 @@ export interface ShirtInput {
 }
 
 export type ImageStatus = 'candidate' | 'confirmed' | 'rejected';
-export type ImageSource = 'wikimedia_commons' | 'openverse' | 'manual';
+export type ImageSource = 'wikimedia_commons' | 'openverse' | 'manual' | 'footballkitarchive';
 
 /** Una fotografia associada a una samarreta (candidata, confirmada o rebutjada). */
 export interface ShirtImage {

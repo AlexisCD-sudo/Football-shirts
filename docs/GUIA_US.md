@@ -17,6 +17,9 @@ Obre la URL de l'aplicació i inicia la sessió amb el teu correu i contrasenya 
 4. Primer prova amb una mostra de 5 files; després importa-ho tot. L'informe final diu què s'ha importat i què ha fallat.
 Detalls: `docs/IMPORT_EXPORT.md`.
 
+## Afegir una samarreta des de Football Kit Archive
+Botó «Des de Football Kit Archive» del catàleg: obres el web, enganxes l'enllaç de la fitxa, hi afegeixes la imatge (fitxer o adreça) i revises les dades abans de desar. Detalls i limitacions: `docs/FOOTBALL_KIT_ARCHIVE.md`.
+
 ## Fotos
 **Una samarreta:** clic → «Cerca fotos».
 - **Cerca a Internet:** la consulta es pot editar. Veuràs candidates amb font, autor i llicència. «Confirma» per triar-ne una, «Rebutja» per descartar-la (no es tornarà a proposar). Marca «Compara» a fins a 3 per veure-les ampliades.

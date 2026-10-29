@@ -102,6 +102,18 @@ describe('uploadPhoto (Supabase simulat)', () => {
     expect(inserts[0]).not.toHaveProperty('owner_id');
   });
 
+  it('desa l’origen (font, fitxa i permís) quan es puja des de Football Kit Archive', async () => {
+    const { client, inserts } = fakeCloud();
+    await new SupabaseShirtRepository(client).uploadPhoto('shirt1', new Blob(['a']), 'image/jpeg', {
+      source: 'footballkitarchive',
+      sourcePageUrl: 'https://www.footballkitarchive.com/es/x/',
+      license: 'Ús personal',
+    });
+    expect(inserts[0]).toMatchObject({
+      source: 'footballkitarchive', source_page_url: 'https://www.footballkitarchive.com/es/x/', license: 'Ús personal', origin: 'stored',
+    });
+  });
+
   it('si falla desar la fila, elimina el fitxer pujat (no deixa orfes)', async () => {
     const { client, uploaded, removed } = fakeCloud({ insertError: true });
     await expect(new SupabaseShirtRepository(client).uploadPhoto('shirt1', new Blob(['a']), 'image/png')).rejects.toThrow();

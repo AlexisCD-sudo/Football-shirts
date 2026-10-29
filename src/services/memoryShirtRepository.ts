@@ -16,8 +16,10 @@ import type {
   ImageJobPatch,
   ImportMeta,
   ImportReport,
+  ManualImageMeta,
   NewCandidate,
   ShirtRepository,
+  UploadMeta,
 } from './shirtRepository';
 
 type StoredShirt = Omit<Shirt, 'team'> & { teamId: string };
@@ -242,7 +244,7 @@ export class MemoryShirtRepository implements ShirtRepository {
     img.selectedAt = null;
   }
 
-  async addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string): Promise<void> {
+  async addManualImage(shirtId: string, imageUrl: string, sourcePageUrl?: string, meta?: ManualImageMeta): Promise<void> {
     this.requireShirt(shirtId);
     const url = imageUrl.trim();
     if (!/^https?:\/\//i.test(url)) throw new Error('L\u2019enllaç ha de començar per http:// o https://');
@@ -264,9 +266,9 @@ export class MemoryShirtRepository implements ShirtRepository {
       imageUrl: url,
       thumbnailUrl: null,
       sourcePageUrl: sourcePageUrl?.trim() || url,
-      source: 'manual',
+      source: meta?.source ?? 'manual',
       author: null,
-      license: null,
+      license: meta?.license ?? null,
       licenseUrl: null,
       matchScore: null,
       retrievedAt: now,
@@ -276,7 +278,7 @@ export class MemoryShirtRepository implements ShirtRepository {
     this.images.set(img.id, img);
   }
 
-  async uploadPhoto(shirtId: string, file: Blob, contentType: string): Promise<void> {
+  async uploadPhoto(shirtId: string, file: Blob, contentType: string, meta?: UploadMeta): Promise<void> {
     this.requireShirt(shirtId);
     if (!ALLOWED_UPLOAD_TYPES.includes(contentType)) throw new Error('Format no admès: usa JPG, PNG o WebP.');
     this.demotePrimary(shirtId);
@@ -291,10 +293,10 @@ export class MemoryShirtRepository implements ShirtRepository {
       isPrimary: true,
       imageUrl: url,
       thumbnailUrl: url,
-      sourcePageUrl: null,
-      source: 'upload',
+      sourcePageUrl: meta?.sourcePageUrl ?? null,
+      source: meta?.source ?? 'upload',
       author: null,
-      license: 'Foto pròpia',
+      license: meta?.license ?? 'Foto pròpia',
       licenseUrl: null,
       matchScore: null,
       retrievedAt: now,
