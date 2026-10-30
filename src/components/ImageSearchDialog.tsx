@@ -6,6 +6,7 @@ import { PROBABLE, confidence, confidenceLabels } from '../lib/imageSearch/score
 import { allSourcesFailed, searchImages } from '../lib/imageSearch/search';
 import type { ShirtRepository } from '../services/shirtRepository';
 import type { Shirt, ShirtImage } from '../types/shirt';
+import { imageSearchEnabled } from '../lib/features';
 import { Modal, buttonCls, inputCls, primaryCls } from './ui';
 
 interface Props {
@@ -214,6 +215,8 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
         <p className="mt-1 text-xs text-muted">JPG, PNG o WebP. Es redueix a 1600 px i es desa al teu espai privat; només la veus tu.</p>
       </section>
 
+      {imageSearchEnabled() && (
+      <>
       <section aria-label="Cerca" className="mt-6 border-t border-line pt-4">
         <h3 className="font-display text-lg font-bold">Cerca a Internet</h3>
         <form onSubmit={(e) => void search(e)} className="mt-2 flex gap-2">
@@ -318,6 +321,8 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
         </form>
         <p className="mt-1 text-xs text-muted">Es desa com a referència externa amb llicència desconeguda. Assegura&rsquo;t que en pots fer ús.</p>
       </section>
+      </>
+      )}
     </Modal>
   );
 }

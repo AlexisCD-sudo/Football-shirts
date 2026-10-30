@@ -5,6 +5,7 @@ import { ShirtDetailDialog } from '../components/ShirtDetailDialog';
 import { ShirtFormDialog } from '../components/ShirtFormDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { ImportDialog } from '../components/ImportDialog';
+import { imageSearchEnabled } from '../lib/features';
 import { BatchImageDialog } from '../components/BatchImageDialog';
 import { ImageSearchDialog } from '../components/ImageSearchDialog';
 import { ConfirmDialog, Spinner, buttonCls, inputCls, primaryCls } from '../components/ui';
@@ -109,9 +110,11 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'import' })}>
             Importa
           </button>
-          <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'batch' })}>
-            Cerca fotos
-          </button>
+          {imageSearchEnabled() && (
+            <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'batch' })}>
+              Cerca fotos
+            </button>
+          )}
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'export' })}>
             Exporta
           </button>
@@ -185,7 +188,7 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
               }
             >
               {visible.map((s) => (
-                <ShirtCard key={s.id} shirt={s} view={view} hasCandidates={!s.photoUrl && candidateShirtIds.has(s.id)} onOpen={(sh) => setDialog({ type: 'detail', id: sh.id })} />
+                <ShirtCard key={s.id} shirt={s} view={view} hasCandidates={imageSearchEnabled() && !s.photoUrl && candidateShirtIds.has(s.id)} onOpen={(sh) => setDialog({ type: 'detail', id: sh.id })} />
               ))}
             </ul>
           )}

@@ -1,6 +1,7 @@
 import { formatDate, formatMoney } from '../lib/format';
 import { authenticityLabels, conditionLabels, kitTypeLabels, teamKindLabels, versionLabels } from '../lib/labels';
 import type { Shirt, ShirtImage } from '../types/shirt';
+import { imageSearchEnabled } from '../lib/features';
 import { safeHttpUrl } from './ImageSearchDialog';
 import { ShirtPhoto } from './ShirtPhoto';
 import { Modal, buttonCls, primaryCls } from './ui';
@@ -63,7 +64,7 @@ export function ShirtDetailDialog({ shirt: s, image, onEdit, onDelete, onPhotos,
           )}
           {onPhotos && (
             <button type="button" className={`${buttonCls} mt-2 w-full`} onClick={onPhotos}>
-              {s.photoUrl ? 'Gestiona la foto' : 'Cerca fotos'}
+              {s.photoUrl ? 'Gestiona la foto' : imageSearchEnabled() ? 'Cerca fotos' : 'Afegeix una foto'}
             </button>
           )}
         </div>
