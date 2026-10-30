@@ -16,7 +16,7 @@ describe('cerca d’imatges desactivada (per defecte a producció)', () => {
     render(<App repository={repo} />);
     expect(await screen.findByRole('button', { name: 'Afegeix samarreta' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cerca fotos' })).not.toBeInTheDocument();
-    await user.click(await screen.findByText('Girona'));
+    await user.click(await screen.findByRole('button', { name: /Girona/ }));
     const detail = await screen.findByRole('dialog', { name: /Girona/ });
     await user.click(within(detail).getByRole('button', { name: 'Afegeix una foto' }));
     const photos = await screen.findByRole('dialog', { name: /Fotos/ });
