@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { runBatch, shirtsPendingPhoto, type BatchProgress } from '../lib/imageSearch/batch';
 import { sleep } from '../lib/imageSearch/rateLimit';
 import { searchImages } from '../lib/imageSearch/search';
+import { searchWeb } from '../lib/imageSearch/web';
+import { supabase } from '../lib/supabase';
 import type { ShirtRepository } from '../services/shirtRepository';
 import type { ImageJob, ImageJobItem, Shirt, ShirtImage } from '../types/shirt';
 import { Modal, buttonCls, primaryCls } from './ui';
@@ -63,7 +65,7 @@ export function BatchImageDialog({ repository, shirts, images, onChanged, onRevi
       const outcome = await runBatch(current.job, current.items, {
         repo: repository,
         shirts,
-        search: (s) => searchImages(s),
+        search: (s) => searchImages(s, { webSearch: supabase ? searchWeb : undefined }),
         sleep,
         intervalMs: INTERVAL_MS,
         maxAttempts: MAX_ATTEMPTS,

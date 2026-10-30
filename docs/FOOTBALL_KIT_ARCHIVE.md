@@ -61,3 +61,18 @@ llistat de FKA, «Mostra el codi font» (Ctrl+U), copia-ho tot i enganxa-ho (es 
 que un enllaç de fitxa sense imatge no permet desar cap foto. Els formats reals del HTML de FKA no s'han pogut
 comprovar des d'aquí. Si FKA bloqueja mostrar les imatges des d'un altre web, cal descarregar-les i pujar-les
 (flux «Una sola samarreta»).
+
+## Cerca web (candidates tipus «Google Imatges»)
+
+Google va tancar l'API oficial de cerca d'imatges a nous clients (Custom Search JSON API, s'apaga l'1-1-2027) i
+fer scraping de Google Imatges està prohibit. L'alternativa oficial és l'**API de Brave Search** (endpoint
+d'imatges, pagament per ús amb crèdit mensual gratuït; cal targeta i es pot posar límit de despesa).
+
+- Funció de servidor `api/image-search.ts` (Vercel): la clau `BRAVE_API_KEY` només viu al servidor, només respon
+  a usuaris amb sessió (valida el token de Supabase), limita consulta i resultats.
+- A «Cerca fotos» (i en lot) s'afegeixen **fins a 4 candidates web** per samarreta; una consulta prioritza
+  `site:footballkitarchive.com`. Sempre queden com a **candidates a revisar**; la llicència queda en blanc.
+- Sense `BRAVE_API_KEY` la font simplement no hi és (cap error) i tot funciona com abans.
+
+Activació: crea una clau a https://api-dashboard.search.brave.com, a Vercel → Settings → Environment Variables afegeix
+`BRAVE_API_KEY` (Production i Preview) i torna a desplegar.

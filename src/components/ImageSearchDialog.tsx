@@ -5,6 +5,8 @@ import { toNewCandidate } from '../lib/imageSearch/batch';
 import { preparePhoto, validatePhotoFile, ACCEPTED_TYPES } from '../lib/photoUpload';
 import { PROBABLE, confidence, confidenceLabels } from '../lib/imageSearch/score';
 import { allSourcesFailed, searchImages } from '../lib/imageSearch/search';
+import { searchWeb } from '../lib/imageSearch/web';
+import { supabase } from '../lib/supabase';
 import type { ShirtRepository } from '../services/shirtRepository';
 import type { Shirt, ShirtImage } from '../types/shirt';
 import { Modal, buttonCls, inputCls, primaryCls } from './ui';
@@ -40,6 +42,7 @@ const sourceLabels: Record<string, string> = {
   openverse: 'Openverse',
   manual: 'Enllaç manual',
   footballkitarchive: 'Football Kit Archive',
+  web_search: 'Cerca web',
 };
 
 function Attribution({ image }: { image: ShirtImage }) {
@@ -143,7 +146,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
     setError(null);
     setMessage(null);
     try {
-      const outcome = await searchImages(shirt, { queries: [query.trim()], signal: ctrl.signal });
+      const outcome = await searchImages(shirt, { queries: [query.trim()], signal: ctrl.signal, webSearch: supabase ? searchWeb : undefined });
       if (allSourcesFailed(outcome)) {
         setError(`No s’ha pogut consultar cap font: ${outcome.errors.map((x) => x.message).join(' · ')}`);
         return;
@@ -248,7 +251,7 @@ export function ImageSearchDialog({ repository, shirt, images, onChanged, onClos
           </button>
         </form>
         <p className="mt-1 text-xs text-muted">
-          Fonts: Wikimedia Commons i Openverse (imatges amb llicència). Pot ser que no hi hagi cap foto d&rsquo;aquesta peça.
+          Fonts: Wikimedia Commons i Openverse (imatges amb llicència) i, si està activada, la cerca web (fins a 4 candidates sense llicència coneguda, a revisar). Pot ser que no hi hagi cap foto d&rsquo;aquesta peça.
         </p>
         {message && (
           <p role="status" className="mt-2 text-sm">

@@ -36,4 +36,6 @@ export interface SearchOutcome {
   candidates: ScoredCandidate[];
   errors: SourceError[];
   queries: string[];
+  /** Nombre de fonts realment consultades (la cerca web no hi compta si no està configurada). */
+  sourcesTried?: number;
 }
