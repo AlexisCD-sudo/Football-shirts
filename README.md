@@ -67,3 +67,7 @@ docs/             documentació
 - **Supabase gratuït:** pausa per inactivitat (mitigat amb el workflow keep-alive) i sense còpies garantides.
 - **Importes** sempre en euros.
 - Les proves automàtiques usen dades simulades; el comportament contra Supabase real s'ha de comprovar al desplegament (vegeu `docs/SEGURETAT.md`).
+
+
+## Vols la teva còpia?
+Vegeu [`docs/PER_ALS_AMICS.md`](docs/PER_ALS_AMICS.md): cada persona té la seva web i la seva base de dades, en blanc.
