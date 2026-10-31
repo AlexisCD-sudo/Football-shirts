@@ -39,7 +39,10 @@ interface PublicRow {
   storage_path: string | null;
 }
 
-const readOnly = (..._args: unknown[]): Promise<never> => Promise.reject(new Error('Vista de només lectura: inicia la sessió per editar.'));
+const readOnly = (...args: unknown[]): Promise<never> => {
+  void args;
+  return Promise.reject(new Error('Vista de només lectura: inicia la sessió per editar.'));
+};
 
 /**
  * Accés de NOMÉS LECTURA per a qui no ha iniciat sessió. Només llegeix la funció `public_shirts()` (columnes
