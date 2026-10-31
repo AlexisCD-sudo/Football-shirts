@@ -14,7 +14,7 @@ function Tile({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export function StatsPage({ repository }: { repository: ShirtRepository }) {
+export function StatsPage({ repository, readOnly = false }: { repository: ShirtRepository; readOnly?: boolean }) {
   const load = useCallback(() => repository.listShirts(), [repository]);
   const { data: shirts, loading, error, reload } = useAsync(load);
   const stats = useMemo(() => (shirts ? computeStats(shirts) : null), [shirts]);
@@ -50,6 +50,7 @@ export function StatsPage({ repository }: { repository: ShirtRepository }) {
         <BarList title="Per estat" items={stats.byCondition} />
         <BarList title="Per versió" items={stats.byVersion} />
       </div>
+      {!readOnly && (
       <section aria-label="Dades per completar" className="rounded-xl border border-line bg-card p-4">
         <h3 className="font-display text-lg font-bold">Dades per completar</h3>
         <p className="mt-1 text-sm text-muted">Quantes samarretes tenen cada dada (de {stats.total}).</p>
@@ -64,6 +65,7 @@ export function StatsPage({ repository }: { repository: ShirtRepository }) {
           ))}
         </ul>
       </section>
+      )}
     </div>
   );
 }
