@@ -58,6 +58,18 @@ describe('app sense sessió', () => {
     expect(within(d).queryByRole('button', { name: 'Elimina' })).not.toBeInTheDocument();
   });
 
+  it('mostra les estadístiques sense la secció de dades per completar ni preus', async () => {
+    const user = userEvent.setup();
+    render(<App client={fakeClient([row(), row({ id: 's2', team_name: 'Ajax', brand: 'Adidas' })])} />);
+    await user.click(await screen.findByRole('button', { name: 'Estadístiques' }));
+    expect(await screen.findByText('Per equip')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Dades per completar' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preu/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Finances' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Col·lecció' }));
+    expect(await screen.findByRole('button', { name: /Girona/ })).toBeInTheDocument();
+  });
+
   it('«Entra per editar» mostra el correu i la contrasenya, i es pot tornar', async () => {
     const user = userEvent.setup();
     render(<App client={fakeClient([row()])} />);

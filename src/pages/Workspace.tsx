@@ -16,28 +16,29 @@ const labels: Record<Section, string> = {
 
 export function Workspace({ repository, readOnly = false }: { repository: ShirtRepository; readOnly?: boolean }) {
   const [section, setSection] = usePersistentState<Section>('fsc.section', 'collection', [...SECTIONS]);
-  if (readOnly) return <CatalogPage repository={repository} readOnly />;
+  const sections = readOnly ? (['collection', 'stats'] as const) : SECTIONS;
+  const current: Section = sections.some((x) => x === section) ? section : 'collection';
   return (
     <div>
       <nav aria-label="Seccions" className="mb-6 flex gap-1 overflow-x-auto border-b border-line">
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <button
             key={s}
             type="button"
-            aria-current={section === s ? 'page' : undefined}
+            aria-current={current === s ? 'page' : undefined}
             onClick={() => setSection(s)}
             className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              section === s ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'
+              current === s ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {labels[s]}
           </button>
         ))}
       </nav>
-      {section === 'collection' && <CatalogPage repository={repository} />}
-      {section === 'wishlist' && <WishlistPage repository={repository} />}
-      {section === 'finance' && <FinancePage repository={repository} />}
-      {section === 'stats' && <StatsPage repository={repository} />}
+      {current === 'collection' && <CatalogPage repository={repository} readOnly={readOnly} />}
+      {!readOnly && current === 'wishlist' && <WishlistPage repository={repository} />}
+      {!readOnly && current === 'finance' && <FinancePage repository={repository} />}
+      {current === 'stats' && <StatsPage repository={repository} readOnly={readOnly} />}
     </div>
   );
 }
