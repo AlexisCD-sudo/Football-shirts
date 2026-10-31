@@ -37,8 +37,9 @@ function Shell({ children, actions }: { children: ReactNode; actions?: ReactNode
         </p>
       )}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
-      <footer className="mx-auto flex max-w-7xl justify-center px-4 pb-10 sm:px-6">
+      <footer className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 pb-10 sm:px-6">
         <InstallButton />
+        <p className="text-xs text-muted">Creat per Alexis</p>
       </footer>
     </div>
   );
