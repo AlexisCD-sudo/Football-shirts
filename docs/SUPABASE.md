@@ -19,7 +19,7 @@ Comprova a *Table Editor* que cada taula mostra «RLS enabled». A *Storage* ha 
 
 ## 3. Tancar el registre públic i crear el teu usuari
 
-Aquesta és una aplicació d'un sol usuari.
+Aquesta és una aplicació d'un sol usuari (amb vista pública opcional, vegeu §7).
 
 1. *Authentication → Sign In / Providers → Email*: desactiva **Allow new users to sign up**.
 2. *Authentication → Users → Add user → Create new user*: el teu correu i una contrasenya forta, amb *Auto Confirm User* activat.
@@ -53,3 +53,15 @@ curl -s "$VITE_SUPABASE_URL/rest/v1/shirts?select=id" -H "apikey: $VITE_SUPABASE
 ```
 
 La prova d'aïllament entre usuaris (`supabase/tests/`) s'ha executat contra un PostgreSQL local amb una simulació mínima de Supabase, **no** contra el projecte real.
+
+## 7. Vista pública de només lectura (opcional)
+
+Aplica `supabase/migrations/20261031000003_public_readonly.sql` (SQL Editor) i, per fer pública la teva col·lecció:
+
+```sql
+insert into public_collections (owner_id) select id from auth.users where email = 'el-teu-correu@exemple.com';
+```
+
+Qui obre la web veu el catàleg i les fotos en només lectura; «Entra per editar» mostra el correu i la contrasenya. **Mai es publiquen** preus,
+enviament, venedor, valor estimat, ubicació, procedència, desitjos ni finances. Per tancar-la: `delete from public_collections;`.
+Ningú sense sessió pot escriure res (RLS). Prova: `supabase/tests/public_readonly.sql`.

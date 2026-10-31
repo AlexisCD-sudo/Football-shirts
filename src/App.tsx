@@ -10,6 +10,7 @@ import { Workspace } from './pages/Workspace';
 import { LoginPage } from './pages/LoginPage';
 import { MemoryShirtRepository } from './services/memoryShirtRepository';
 import type { ShirtRepository } from './services/shirtRepository';
+import { PublicShirtRepository } from './services/publicShirtRepository';
 import { SupabaseShirtRepository } from './services/supabaseShirtRepository';
 
 function Shell({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
@@ -58,6 +59,32 @@ function MemoryApp({ repository }: { repository: ShirtRepository }) {
   );
 }
 
+/** Vista de només lectura per a tothom; la secció «Entra per editar» mostra el correu i la contrasenya. */
+function PublicApp({ client, onSignIn }: { client: SupabaseClient; onSignIn: (email: string, password: string) => Promise<void> }) {
+  const [login, setLogin] = useState(false);
+  const repository = useMemo(() => new PublicShirtRepository(client), [client]);
+  return (
+    <Shell
+      actions={
+        <button type="button" className={buttonCls} onClick={() => setLogin((v) => !v)}>
+          {login ? 'Torna a la col·lecció' : 'Entra per editar'}
+        </button>
+      }
+    >
+      {login ? (
+        <LoginPage onSignIn={onSignIn} />
+      ) : (
+        <>
+          <p role="note" className="mb-5 rounded-md bg-accent/10 px-4 py-2 text-center text-xs text-ink">
+            Vista de només lectura.
+          </p>
+          <Workspace repository={repository} readOnly />
+        </>
+      )}
+    </Shell>
+  );
+}
+
 function CloudApp({ client }: { client: SupabaseClient }) {
   const { session, loading, signIn, signOut } = useAuth(client);
   // El repositori es recrea només si canvia l'usuari, no a cada renovació del token.
@@ -72,11 +99,7 @@ function CloudApp({ client }: { client: SupabaseClient }) {
     );
   }
   if (!session || !repository) {
-    return (
-      <Shell>
-        <LoginPage onSignIn={signIn} />
-      </Shell>
-    );
+    return <PublicApp client={client} onSignIn={signIn} />;
   }
   return (
     <Shell

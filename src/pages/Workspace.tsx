@@ -14,8 +14,9 @@ const labels: Record<Section, string> = {
   stats: 'Estadístiques',
 };
 
-export function Workspace({ repository }: { repository: ShirtRepository }) {
+export function Workspace({ repository, readOnly = false }: { repository: ShirtRepository; readOnly?: boolean }) {
   const [section, setSection] = usePersistentState<Section>('fsc.section', 'collection', [...SECTIONS]);
+  if (readOnly) return <CatalogPage repository={repository} readOnly />;
   return (
     <div>
       <nav aria-label="Seccions" className="mb-6 flex gap-1 overflow-x-auto border-b border-line">
