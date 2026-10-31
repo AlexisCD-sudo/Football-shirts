@@ -8,8 +8,9 @@ import { Modal, buttonCls, primaryCls } from './ui';
 
 interface Props {
   shirt: Shirt;
-  onEdit: () => void;
-  onDelete: () => void;
+  /** Sense `onEdit`/`onDelete` (vista pública) no es mostren els botons d'edició. */
+  onEdit?: () => void;
+  onDelete?: () => void;
   onPhotos?: () => void;
   image?: ShirtImage;
   onClose: () => void;
@@ -77,14 +78,16 @@ export function ShirtDetailDialog({ shirt: s, image, onEdit, onDelete, onPhotos,
           ))}
         </dl>
       </div>
-      <div className="mt-6 flex flex-wrap justify-between gap-2 border-t border-line pt-4">
-        <button type="button" className={buttonCls} onClick={onDelete}>
-          Elimina
-        </button>
-        <button type="button" className={primaryCls} onClick={onEdit}>
-          Edita
-        </button>
-      </div>
+      {onEdit && onDelete && (
+        <div className="mt-6 flex flex-wrap justify-between gap-2 border-t border-line pt-4">
+          <button type="button" className={buttonCls} onClick={onDelete}>
+            Elimina
+          </button>
+          <button type="button" className={primaryCls} onClick={onEdit}>
+            Edita
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }

@@ -33,7 +33,7 @@ type Dialog =
   | { type: 'edit'; id: string }
   | { type: 'delete'; id: string };
 
-export function CatalogPage({ repository }: { repository: ShirtRepository }) {
+export function CatalogPage({ repository, readOnly = false }: { repository: ShirtRepository; readOnly?: boolean }) {
   const { shirts, teams, images, loading, error, reload, sync, syncing, syncError, lastSync, create, update, remove } =
     useShirtCollection(repository);
   const [filters, setFilters] = useState<CatalogFilters>(emptyFilters);
@@ -107,6 +107,8 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
               </button>
             ))}
           </div>
+          {!readOnly && (
+            <>
           <button type="button" className={buttonCls} onClick={() => setDialog({ type: 'import' })}>
             Importa
           </button>
@@ -121,6 +123,8 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
           <button type="button" className={primaryCls} onClick={() => setDialog({ type: 'create' })}>
             Afegeix samarreta
           </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -234,9 +238,9 @@ export function CatalogPage({ repository }: { repository: ShirtRepository }) {
         <ShirtDetailDialog
           shirt={selected}
           onClose={close}
-          onEdit={() => setDialog({ type: 'edit', id: selected.id })}
-          onDelete={() => setDialog({ type: 'delete', id: selected.id })}
-          onPhotos={() => setDialog({ type: 'photos', id: selected.id })}
+          onEdit={readOnly ? undefined : () => setDialog({ type: 'edit', id: selected.id })}
+          onDelete={readOnly ? undefined : () => setDialog({ type: 'delete', id: selected.id })}
+          onPhotos={readOnly ? undefined : () => setDialog({ type: 'photos', id: selected.id })}
           image={images.find((i) => i.shirtId === selected.id && i.status === 'confirmed' && i.isPrimary)}
         />
       )}
